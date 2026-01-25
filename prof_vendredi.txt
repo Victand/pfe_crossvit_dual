@@ -1,0 +1,10 @@
+python detect.py --weights yolov7-ag.pt --conf 0.25 --img 640 --source H:\Documents\Ing 3\PFE\data\Data_Projet\mission_herbonaute_2000
+ le poid d'un patch en fonction des organnes
+jste utilisé YOlo pour genré des patchs dans un csv
+
+
+forcé le modèle à regarder la tige
+pondération des patchs
+utlisé 
+découpé l'imae en patch
+calculé
