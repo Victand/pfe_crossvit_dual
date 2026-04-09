@@ -1,7 +1,0 @@
-pandas==2.1.4
-pygame==2.5.2
-
-
-Bienvenue sur Hackifind, le guide de survie des Hackatons en France.
-Ici vous pourrez retrouver une map pour vous diriger entre les différnts hackathons. 
-Vous avez accès à une boutique pour acheter vos billets pour vos prochains hackatons et les objets indispensables pour les gagner.

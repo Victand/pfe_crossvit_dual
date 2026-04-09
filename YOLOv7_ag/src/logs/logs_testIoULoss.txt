@@ -1,0 +1,78 @@
+Test IOU Loss pour modele B
+Start training for 10 epochs
+
+Epoch 1/10
+Best val loss yet : 4.281347751617432
+Avg Train Loss: 1.1477.
+Avg Val Loss: 4.2813
+Val Accuracy: 50.00%
+F1-Score: 66.67%
+Avg IoU: 14.6743%.
+
+Epoch 2/10
+Best val loss yet : 2.145979881286621
+Avg Train Loss: 4.5101.
+Avg Val Loss: 2.1460
+Val Accuracy: 50.00%
+F1-Score: 0.00%
+Avg IoU: 3.1676%.
+
+Epoch 3/10
+Avg Train Loss: 2.1748.
+Avg Val Loss: 3.9515
+Val Accuracy: 50.00%
+F1-Score: 66.67%
+Avg IoU: 2.9393%.
+
+Epoch 4/10
+Avg Train Loss: 3.9357.
+Avg Val Loss: 2.4479
+Val Accuracy: 50.00%
+F1-Score: 0.00%
+Avg IoU: 3.2035%.
+
+Epoch 5/10
+Best val loss yet : 1.911264181137085
+Avg Train Loss: 2.3358.
+Avg Val Loss: 1.9113
+Val Accuracy: 50.00%
+F1-Score: 0.00%
+Avg IoU: 11.3648%.
+
+Epoch 6/10
+Best val loss yet : 1.7832083702087402
+Avg Train Loss: 1.9069.
+Avg Val Loss: 1.7832
+Val Accuracy: 50.00%
+F1-Score: 0.00%
+Avg IoU: 17.8212%.
+
+Epoch 7/10
+Avg Train Loss: 1.7895.
+Avg Val Loss: 1.7920
+Val Accuracy: 50.00%
+F1-Score: 66.67%
+Avg IoU: 20.1538%.
+
+Epoch 8/10
+Avg Train Loss: 1.7940.
+Avg Val Loss: 1.8013
+Val Accuracy: 50.00%
+F1-Score: 66.67%
+Avg IoU: 21.5309%.
+
+Epoch 9/10
+Avg Train Loss: 1.8036.
+Avg Val Loss: 1.8004
+Val Accuracy: 50.00%
+F1-Score: 66.67%
+Avg IoU: 22.1964%.
+
+Epoch 10/10
+Avg Train Loss: 1.8020.
+Avg Val Loss: 1.7991
+Val Accuracy: 50.00%
+F1-Score: 66.67%
+Avg IoU: 22.3446%.
+
+Training time: 0:02:43

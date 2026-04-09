@@ -1,0 +1,51 @@
+[project]
+name = "pfe"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "einops>=0.8.2",
+    "fvcore>=0.1.5.post20221221",
+    "ipykernel>=7.2.0",
+    "ipython",
+    "jupyter>=1.1.1",
+    "jupyterlab>=4.5.6",
+    "matplotlib>=3.2.2",
+    "notebook>=7.5.5",
+    "numbers-parser>=4.14.4",
+    "numpy<2.0.0",
+    "opencv-python>=4.1.1",
+    "pandas>=1.1.4",
+    "pathlib>=1.0.1",
+    "pillow>=7.1.2",
+    "protobuf<4.21.3",
+    "psutil",
+    "pyyaml>=5.3.1",
+    "requests>=2.23.0",
+    "scipy>=1.4.1",
+    "seaborn>=0.11.0",
+    "submitit>=1.5.4",
+    "tensorboard>=2.4.1",
+    "tensorflow<2.17",
+    "thop",
+    "timm>=0.9.0",
+    "torch<2.3.0",
+    "torch-vision>=0.1.6.dev0",
+    "torchaudio>=2.11.0",
+    "torchmetrics>=1.9.0",
+    "torchvision<0.18",
+    "tqdm>=4.41.0",
+]
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["CrossViT", "YOLOv7_ag", "script"]
+
+[tool.setuptools.package-dir]
+# On dit à Python : "Le package CrossViT se trouve en fait à ce chemin là"
+"CrossViT" = "YOLOv7_ag/src/CrossViT"
+"YOLOv7_ag" = "YOLOv7_ag"
+"script" = "script"

@@ -35,7 +35,7 @@ YOLOv7-ag/
 ## Training
 
 ```bash
-python train.py --img 640 --batch 16 --epochs 800 --data data/herbarium.yaml --cfg cfg/yolov7-ag.yaml --weights '' --name yolov7-ag --device 0
+python train_vit.py --img 640 --batch 16 --epochs 800 --data data/herbarium.yaml --cfg cfg/yolov7-ag.yaml --weights '' --name yolov7-ag --device 0
 ```
 
 ## Detection
