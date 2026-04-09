@@ -3,6 +3,8 @@
 
 Ce projet utilise **uv** pour la gestion des dépendances et du verrouillage des versions (`uv.lock`). Il permet de préparer des données via **YOLOv7** et d'entraîner un modèle **DualCrossViT**.
 
+
+Je dois changer des trucs genre les dossiers si ya plus de catégories ça va être trop lourd enpretraitement donc chiantos
 ## 1. Installation
 
 Comme le projet contient un fichier `uv.lock`, utilisez la commande suivante pour synchroniser votre environnement :
@@ -22,12 +24,12 @@ Ce script gère le tri des images et la génération des poids de détection.
 ### Lancement avec uv :
 ```bash
 # Traitement complet avec nettoyage
-uv run main_detection.py --clean
+uv run pretraitement.py --clean
 
 # Test rapide sur une limite d'images
-uv run main_detection.py --limit 10
+uv run pretraitement.py --limit 10
 ```
-
+limit de 10 daans chaque sous dossier
 ---
 
 ## 3. Entraînement du Modèle (`train_vit.py`)
@@ -37,10 +39,10 @@ Une fois les images triées et les poids générés, ce script lance l'entraîne
 ### Lancement avec uv :
 ```bash
 # Entraînement standard
-uv run train_vit.py --batch 32 --lr 1e-4
-
+uv run train_vic.py --batch 4 --lr 1e-4
+batch de 4 pcq cpu
 # Test rapide sur 100 samples avec visualisation
-uv run train_vit.py --samples 100 --plot
+uv run train_vic.py --samples 100 --plot --batch 4
 ```
 
 ### Arguments disponibles :
