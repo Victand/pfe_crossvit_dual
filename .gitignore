@@ -12,4 +12,7 @@ data/Data_Projet
 data/
 YOLOv7_ag/runs/detect/
 *.pt
-YOLOv7_ag/saved
+YOLOv7_ag/saved/*
+/YOLOv7_ag/tools/
+
+/YOLOv7_ag/scripts/

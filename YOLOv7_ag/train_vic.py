@@ -8,7 +8,6 @@ from torch.utils.data import Subset
 from tqdm import tqdm
 
 
-
 # Importations locales
 src_path = str(Path(__file__).parent / "src")
 if src_path not in sys.path:

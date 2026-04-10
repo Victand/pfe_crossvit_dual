@@ -261,13 +261,11 @@ class DualCrossVit(crossvit.VisionTransformer):
     def forward_features(self, x_small, x_large, weights, num_patches):
         B_large = x_large.shape[0]
 
-        # --- Branche Small (Patchs) ---
-        # --- Branche Small (Patchs) ---
         tmp_s = self.patch_embed[0](x_small)
         cls_s = self.cls_token[0].expand(x_small.shape[0], -1, -1)
         tmp_s = torch.cat((cls_s, tmp_s), dim=1)
 
-        # --- AJOUT DE CETTE SÉCURITÉ ICI ---
+
         pos_embed_s = self.pos_embed[0]
         if tmp_s.shape[1] != pos_embed_s.shape[1]:
             # On sépare le CLS token du reste
