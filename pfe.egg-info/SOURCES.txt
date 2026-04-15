@@ -7,11 +7,14 @@ YOLOv7_ag/detect_perso.py
 YOLOv7_ag/export.py
 YOLOv7_ag/hubconf.py
 YOLOv7_ag/pipeline.py
+YOLOv7_ag/pretraitement.py
 YOLOv7_ag/run_detect_yolo.py
 YOLOv7_ag/run_train_yolo.py
 YOLOv7_ag/test.py
 YOLOv7_ag/train.py
 YOLOv7_ag/train_aux.py
+YOLOv7_ag/train_vic.py
+YOLOv7_ag/train_vit.py
 YOLOv7_ag/src/CrossViT/datasets.py
 YOLOv7_ag/src/CrossViT/engine.py
 YOLOv7_ag/src/CrossViT/main.py

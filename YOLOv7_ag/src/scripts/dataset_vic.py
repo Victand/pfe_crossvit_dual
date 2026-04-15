@@ -80,21 +80,29 @@ class DualInputDataset(Dataset):
         original_image_p, segmented_image_p, label_int = self.samples[idx]
         original_image = Image.open(original_image_p).convert('RGB')
 
+        # --- CAS CLASSIQUE ---
         if not self.use_yolo_weights:
             segmented_image = Image.open(segmented_image_p).convert('RGB')
-            img_large, img_seg = self.synchronized_transform(original_image, segmented_image)
+            img_large, img_seg = self.synchronized_transform(original_image, segmented_image, is_heatmap=False)
             img_large, img_seg = normalize_and_erase(self, img_large, img_seg)
-            weights = self.patches_weights(img_seg, self.patch_size[0], self.weight_function) if self.pounderation else torch.empty(0)
+            weights = self.patches_weights(img_seg, self.patch_size[0],
+                                           self.weight_function) if self.pounderation else torch.empty(0)
             return img_seg, img_large, label_int, weights
 
-        img_large, _ = self.synchronized_transform(original_image, original_image)
-        img_large = TF.normalize(img_large, self.mean, self.std)
-
+        # --- CAS YOLO ---
+        # 1. Charger la heatmap brute d'abord
         weight_p = original_image_p.parent / f"{original_image_p.stem}_weights.pt"
         data = torch.load(weight_p)
-        weights = data['global_heatmap'].squeeze(0)
-        all_patches_data = data.get('patches', [])
+        weights_raw = data['global_heatmap'].squeeze(0)
 
+        # 2. Appliquer les mêmes transformations à l'image et à la heatmap en même temps
+        img_large, weights = self.synchronized_transform(original_image, weights_raw, is_heatmap=True)
+
+        # 3. Normaliser l'image (les poids n'en ont pas besoin)
+        img_large = TF.normalize(img_large, self.mean, self.std)
+
+        # 4. Gérer les patchs (Le reste de ton code ne change pas)
+        all_patches_data = data.get('patches', [])
         final_list = []
         if all_patches_data:
             # Classement par ID direct (puisque tes .pt sont maintenant corrects)
@@ -139,25 +147,59 @@ class DualInputDataset(Dataset):
         w_norm = torch.ones(num_p) if not ratios.sum() > 0 else f(ratios) * num_p / (f(ratios).sum() + 1e-8)
         return torch.unsqueeze(w_norm, dim=1)
 
-    def synchronized_transform(self, img1, img2):
+    def synchronized_transform(self, img, mask_or_heatmap, is_heatmap=False):
+        # 1. Calcul de la nouvelle taille
         new_size = (int(self.image_size[0] * 1.14), int(self.image_size[1] * 1.14))
-        img1, img2 = TF.resize(img1, new_size[0]), TF.resize(img2, new_size[0])
+
+        # 2. Conversion de l'image principale en Tensor
+        if not isinstance(img, torch.Tensor):
+            img = TF.to_tensor(img)
+
+        # 3. Redimensionnement
+        img = TF.resize(img, new_size, antialias=True)
+
+        if isinstance(mask_or_heatmap, torch.Tensor):
+            # Cas YOLO (Heatmap) : on lisse les valeurs avec Bilinear
+            interp = TF.InterpolationMode.BILINEAR if is_heatmap else TF.InterpolationMode.NEAREST
+            mask_or_heatmap = TF.resize(mask_or_heatmap, new_size, interpolation=interp, antialias=True)
+        else:
+            # Cas normal (Image PIL segmentée)
+            mask_or_heatmap = TF.to_tensor(mask_or_heatmap)
+            mask_or_heatmap = TF.resize(mask_or_heatmap, new_size, interpolation=TF.InterpolationMode.NEAREST,
+                                        antialias=True)
+
+        # 4. Transformations Spatiales
         if self.is_train:
+            # Coupe aléatoire (Crop)
             if self.active_transforms["random_crop"]:
-                i, j, h, w = transforms.RandomCrop.get_params(img1, output_size=self.image_size)
-                img1, img2 = TF.crop(img1, i, j, h, w), TF.crop(img2, i, j, h, w)
+                i, j, h, w = transforms.RandomCrop.get_params(img, output_size=self.image_size)
+                img = TF.crop(img, i, j, h, w)
+                mask_or_heatmap = TF.crop(mask_or_heatmap, i, j, h, w)
+
+            # Effet miroir (Flip)
             if self.active_transforms["hflip"] and random.random() > 0.5:
-                img1, img2 = TF.hflip(img1), TF.hflip(img2)
+                img = TF.hflip(img)
+                mask_or_heatmap = TF.hflip(mask_or_heatmap)
+
+            # 5. Changement de couleurs (UNIQUEMENT SUR L'IMAGE)
             if self.active_transforms["color_jitter"]:
                 p = transforms.ColorJitter.get_params([0.6, 1.4], [0.6, 1.4], [0.6, 1.4], [-0.1, 0.1])
                 for fn_id in p[0]:
-                    if fn_id == 0: img1, img2 = TF.adjust_brightness(img1, p[1]), TF.adjust_brightness(img2, p[1])
-                    elif fn_id == 1: img1, img2 = TF.adjust_contrast(img1, p[2]), TF.adjust_contrast(img2, p[2])
-                    elif fn_id == 2: img1, img2 = TF.adjust_saturation(img1, p[3]), TF.adjust_saturation(img2, p[3])
-                    elif fn_id == 3: img1, img2 = TF.adjust_hue(img1, p[4]), TF.adjust_hue(img2, p[4])
+                    if fn_id == 0:
+                        img = TF.adjust_brightness(img, p[1])
+                    elif fn_id == 1:
+                        img = TF.adjust_contrast(img, p[2])
+                    elif fn_id == 2:
+                        img = TF.adjust_saturation(img, p[3])
+                    elif fn_id == 3:
+                        img = TF.adjust_hue(img, p[4])
+
+        # 6. Recadrage central si on est en validation ou sans random_crop
         if (not self.active_transforms["random_crop"]) or (not self.is_train):
-            img1, img2 = TF.center_crop(img1, self.image_size), TF.center_crop(img2, self.image_size)
-        return TF.to_tensor(img1), TF.to_tensor(img2)
+            img = TF.center_crop(img, self.image_size)
+            mask_or_heatmap = TF.center_crop(mask_or_heatmap, self.image_size)
+
+        return img, mask_or_heatmap
 
 def normalize_and_erase(dualdataset, img1, img2):
     img1, img2 = TF.normalize(img1, dualdataset.mean, dualdataset.std), TF.normalize(img2, dualdataset.mean, dualdataset.std)

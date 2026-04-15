@@ -16,3 +16,6 @@ YOLOv7_ag/saved/*
 /YOLOv7_ag/tools/
 
 /YOLOv7_ag/scripts/
+*.pth
+
+/saved
