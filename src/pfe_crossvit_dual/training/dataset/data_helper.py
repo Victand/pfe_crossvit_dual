@@ -4,6 +4,7 @@ from pfe_crossvit_dual.training.utils.weight_functions import get_weight_functio
 
 
 def prepare_dataloaders(train_ds, val_ds, batch_size, num_workers):
+    prefetch_factor = 2 if num_workers>0 else None
     t_ld = DataLoader(
         train_ds,
         batch_size=batch_size,
@@ -20,7 +21,7 @@ def prepare_dataloaders(train_ds, val_ds, batch_size, num_workers):
         shuffle=False,
         pin_memory=True,
         persistent_workers=True,
-        prefetch_factor=2,
+        prefetch_factor=prefetch_factor,
     )
     return t_ld, v_ld
 

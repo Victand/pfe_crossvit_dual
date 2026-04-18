@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import torch
 import torch.nn.functional as nnTF
 import matplotlib.gridspec as gridspec
+from tqdm import tqdm
 from PIL import Image, ImageFile
 from pfe_crossvit_dual.training.utils.weight_functions import linear_
 from pfe_crossvit_dual.constants.paths import DATA_DIR
@@ -31,8 +32,8 @@ class DualInputDataset(Dataset):
         weight_function=linear_,
         use_yolo_weights=False,
         num_patches=16,
-        patch_quotas=None,
-        use_cache=False
+        patch_quotas={0:2, 1:0, 2:12, 3:2},
+        precompute=False
     ):
         self.data_dir = Path(data_dir)
         self.is_train = is_train
@@ -45,17 +46,8 @@ class DualInputDataset(Dataset):
         self.numbranches = 2
         self.use_yolo_weights = use_yolo_weights
         self.num_patches = num_patches
-        self.use_cache = use_cache
-
-        # --- QUOTAS ALIGNÉS SUR TON YAML (0:leaf, 1:root, 2:stem, 3:flower) ---
-        if patch_quotas is None:
-            self.patch_quotas = {
-                2: 12,  # Priorité max aux TIGES (Stem) pour les épines
-                0: 2,  # Quelques feuilles
-                3: 2,  # Quelques fleurs
-            }
-        else:
-            self.patch_quotas = patch_quotas
+        self.patch_quotas = patch_quotas
+        self.precompute = precompute
 
         self.mean = [0.485, 0.456, 0.406]
         self.std = [0.229, 0.224, 0.225]
@@ -65,6 +57,11 @@ class DualInputDataset(Dataset):
         self.cache = {}
         self.classes_count = {self.classes[0]: 0, self.classes[1]: 0}
         self.load_samples()
+
+        if self.precompute:
+            self.data = []
+            for idx in tqdm(range(len(self.samples)), desc="precomputing dataset"):
+                self.data.append(self[idx])
 
     def load_samples(self):
         phase = "train" if self.is_train else "val"
@@ -92,8 +89,8 @@ class DualInputDataset(Dataset):
         return len(self.samples)
 
     def __getitem__(self, idx):
-        if self.use_cache and idx in self.cache:
-            return self.cache[idx]
+        if self.precompute:
+            return self.data[idx]
         
         original_image_p, segmented_image_p, label_int = self.samples[idx]
         original_image = Image.open(original_image_p).convert("RGB")
@@ -166,10 +163,6 @@ class DualInputDataset(Dataset):
             TF.normalize(p, self.mean, self.std) if p.max() > 0 else p
             for p in final_list
         ]
-        # Caching
-        if self.use_cache:
-            self.cache[idx] = torch.stack(selected_patches), img_large, label_int, weights
-
         return torch.stack(selected_patches), img_large, label_int, weights
 
     def set_active_transforms(self, active_transforms_list):

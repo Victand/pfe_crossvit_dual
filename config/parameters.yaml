@@ -17,7 +17,7 @@ training:
   dataset: 
     classes: ["no_epines", "epines"]
     paths: ["original", "segmented"]
-    use_cache: True
+    precompute: True
     n_samples: null
     num_workers: 2
     use_yolo_weights: True
