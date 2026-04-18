@@ -47,7 +47,6 @@ class DualInputDataset(Dataset):
         self.use_yolo_weights = use_yolo_weights
         self.num_patches = num_patches
         self.patch_quotas = patch_quotas
-        self.precompute = precompute
 
         self.mean = [0.485, 0.456, 0.406]
         self.std = [0.229, 0.224, 0.225]
@@ -58,10 +57,12 @@ class DualInputDataset(Dataset):
         self.classes_count = {self.classes[0]: 0, self.classes[1]: 0}
         self.load_samples()
 
-        if self.precompute:
+        self.precomputed = False
+        if precompute:
             self.data = []
             for idx in tqdm(range(len(self.samples)), desc="precomputing dataset"):
                 self.data.append(self[idx])
+            self.precomputed = True
 
     def load_samples(self):
         phase = "train" if self.is_train else "val"
@@ -89,7 +90,7 @@ class DualInputDataset(Dataset):
         return len(self.samples)
 
     def __getitem__(self, idx):
-        if self.precompute:
+        if self.precomputed:
             return self.data[idx]
         
         original_image_p, segmented_image_p, label_int = self.samples[idx]
