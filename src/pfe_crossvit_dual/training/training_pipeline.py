@@ -24,8 +24,8 @@ def init_logs(
     with open(log_file, mode) as f:
         f.write("=== Début de l'entraînement ===\n")
         f.write(
-            f"Modèle: {model_name} | Époques: {epochs} | LR: {lr}|batch size {batch_size}|patience {patience}\n"
-            f"stratégie {alphas}\n\n"
+            f"Modèle: {model_name} | Epochs: {epochs} | LR: {lr}|batch size {batch_size}|patience {patience}\n"
+            f"stratégie {alphas.cpu()}\n\n"
         )
 
 
@@ -90,7 +90,7 @@ def training_pipeline(config):
         lr=config["lr"],
         batch_size=config["batch_size"],
         patience=config["patience"],
-        resume_path=config["resume_path"]
+        resume_path=config["resume_path"],
     )
     history, best_acc = train(
         model,

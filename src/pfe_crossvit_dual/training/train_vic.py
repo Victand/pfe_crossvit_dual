@@ -129,7 +129,7 @@ def save_training_graphs(history, save_dir):
     ax1.plot(epochs, history["train_loss"], label="Train Loss", marker="o")
     ax1.plot(epochs, history["val_loss"], label="Validation Loss", marker="o")
     ax1.set_title("Évolution de la Perte (Loss)")
-    ax1.set_xlabel("Époques")
+    ax1.set_xlabel("Epochs")
     ax1.set_ylabel("Loss")
     ax1.legend()
     ax1.grid(True, linestyle="--", alpha=0.7)
@@ -140,7 +140,7 @@ def save_training_graphs(history, save_dir):
     ax2.plot(epochs, history["val_rec"], label="Recall", marker="v")
     ax2.plot(epochs, history["val_f1"], label="F1-Score", marker="d")
     ax2.set_title("Évolution des Métriques de Validation")
-    ax2.set_xlabel("Époques")
+    ax2.set_xlabel("Epochs")
     ax2.set_ylabel("Score (%)")
     ax2.legend()
     ax2.grid(True, linestyle="--", alpha=0.7)
@@ -255,7 +255,7 @@ def train(
     with open(log_file, mode) as f:
         f.write("=== Début de l'entraînement ===\n")
         f.write(
-            f"Modèle: {MODEL_NAME} | Époques: {epochs} | LR: {lr}|batch size {batch_size}|patience {patience}\n"
+            f"Modèle: {MODEL_NAME} | Epochs: {epochs} | LR: {lr}|batch size {batch_size}|patience {patience}\n"
             f"stratégie {STRATEGIE_ALPHAS}\n\n"
         )
 
@@ -403,7 +403,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "-n", "--samples", type=int, default=None, help="Nombre de samples pour le test"
     )
-    parser.add_argument("-e", "--epochs", type=int, default=7, help="Nombre d'époques")
+    parser.add_argument("-e", "--epochs", type=int, default=7, help="Nombre d'Epochs")
     parser.add_argument("-b", "--batch", type=int, default=32, help="Batch size")
     parser.add_argument("--lr", type=float, default=1e-4, help="Learning rate")
     parser.add_argument(

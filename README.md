@@ -49,7 +49,7 @@ uv run train_vic.py --samples 100 --plot --batch 4
 | Argument | Description | Défaut |
 | :--- | :--- | :--- |
 | `-n`, `--samples` | Nombre d'images max à charger | `None` |
-| `-e`, `--epochs` | Nombre d'époques | `7` |
+| `-e`, `--epochs` | Nombre d'Epochs | `7` |
 | `-b`, `--batch` | Taille du batch | `32` |
 | `--lr` | Learning rate | `1e-4` |
 | `--plot` | Affiche une heatmap de contrôle avant le départ | `False` |

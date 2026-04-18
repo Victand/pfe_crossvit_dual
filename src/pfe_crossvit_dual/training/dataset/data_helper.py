@@ -5,10 +5,22 @@ from pfe_crossvit_dual.training.utils.weight_functions import get_weight_functio
 
 def prepare_dataloaders(train_ds, val_ds, batch_size, num_workers):
     t_ld = DataLoader(
-        train_ds, batch_size=batch_size, num_workers=num_workers, shuffle=True
+        train_ds,
+        batch_size=batch_size,
+        num_workers=num_workers,
+        shuffle=True,
+        pin_memory=True,
+        persistent_workers=True,
+        prefetch_factor=2,
     )
     v_ld = DataLoader(
-        val_ds, batch_size=int(2 * batch_size), num_workers=num_workers, shuffle=False
+        val_ds,
+        batch_size=int(2 * batch_size),
+        num_workers=num_workers,
+        shuffle=False,
+        pin_memory=True,
+        persistent_workers=True,
+        prefetch_factor=2,
     )
     return t_ld, v_ld
 

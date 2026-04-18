@@ -78,10 +78,10 @@ def train(
         pbar = tqdm(train_loader, desc=f"Époque {epoch + 1}/{epochs}")
 
         for x_small, img_large, labels, weights in pbar:
-            x_small = x_small.to(device)
-            img_large = img_large.to(device)
-            labels = labels.to(device)
-            weights = weights.to(device)
+            x_small = x_small.to(device, non_blocking=True)
+            img_large = img_large.to(device, non_blocking=True)
+            labels = labels.to(device, non_blocking=True)
+            weights = weights.to(device, non_blocking=True)
 
             optimizer.zero_grad()
             preds = model(x_small, img_large, weights=weights, alpha=alphas)

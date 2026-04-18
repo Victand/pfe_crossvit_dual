@@ -162,7 +162,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "-n", "--samples", type=int, default=None, help="Nombre de samples pour le test"
     )
-    parser.add_argument("-e", "--epochs", type=int, default=7, help="Nombre d'époques")
+    parser.add_argument("-e", "--epochs", type=int, default=7, help="Nombre d'Epochs")
     parser.add_argument("-b", "--batch", type=int, default=32, help="Batch size")
     parser.add_argument("--lr", type=float, default=1e-4, help="Learning rate")
     parser.add_argument(
