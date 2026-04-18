@@ -1,0 +1,40 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Preparation",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "src/pfe_crossvit_dual/preparation/preparation.py",
+            "console": "integratedTerminal",
+            "envFile": "${workspaceFolder}/.env",
+            "args": [
+                "--data_dir",
+                "/mnt/shared/Documents/cours/PFE/pfe-repo/data/01_raw/thorns"
+            ]
+        },
+        {
+            "name": "Preprocessing",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "src/pfe_crossvit_dual/preprocessing/preprocessing.py",
+            "console": "integratedTerminal",
+            "envFile": "${workspaceFolder}/.env",
+            "args": [
+                "--clean",
+                //"-- limit 100"
+            ]
+        },
+        {
+            "name": "Training Pipeline",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "src/pfe_crossvit_dual/training/training_pipeline.py",
+            "console": "integratedTerminal",
+            "envFile": "${workspaceFolder}/.env"
+        }
+    ]
+}

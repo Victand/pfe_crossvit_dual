@@ -1,0 +1,171 @@
+import os
+import torch
+from tqdm import tqdm
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+import gc
+
+from pfe_crossvit_dual.training.utils.diagnostic import debug_full_diagnostic
+
+
+def validate(model, loader, criterion, alphas, device):
+    model.eval()
+    val_loss = 0.0
+    all_preds = []
+    all_labels = []
+
+    with torch.no_grad():
+        for x_small, img_large, labels, weights in loader:
+            x_small = x_small.to(device)
+            img_large = img_large.to(device)
+            labels = labels.to(device)
+            weights = weights.to(device)
+
+            preds = model(x_small, img_large, weights=weights, alpha=alphas)
+            loss = criterion(preds, labels)
+            val_loss += loss.item()
+
+            _, predicted = torch.max(preds.data, 1)
+
+            all_preds.extend(predicted.cpu().numpy())
+            all_labels.extend(labels.cpu().numpy())
+
+    avg_loss = val_loss / len(loader)
+
+    # Calcul des métriques avec scikit-learn
+    acc = accuracy_score(all_labels, all_preds) * 100
+    prec = (
+        precision_score(all_labels, all_preds, average="macro", zero_division=0) * 100
+    )
+    rec = recall_score(all_labels, all_preds, average="macro", zero_division=0) * 100
+    f1 = f1_score(all_labels, all_preds, average="macro", zero_division=0) * 100
+
+    return avg_loss, acc, prec, rec, f1
+
+
+def train(
+    model,
+    train_loader,
+    val_loader,
+    optimizer,
+    criterion,
+    alphas,
+    classes,
+    epochs,
+    patience,
+    device,
+    save_path,
+):
+    log_path = os.path.join(save_path, "training_logs.txt")
+
+    start_epoch = 0
+    best_acc = 0.0
+    no_improve = 0
+
+    history = {
+        "train_loss": [],
+        "val_loss": [],
+        "val_acc": [],
+        "val_prec": [],
+        "val_rec": [],
+        "val_f1": [],
+    }
+
+    print(f"Lancement de l'entraînement sur {device}...")
+
+    for epoch in range(start_epoch, epochs):
+        model.train()
+        train_loss = 0.0
+        pbar = tqdm(train_loader, desc=f"Époque {epoch + 1}/{epochs}")
+
+        for x_small, img_large, labels, weights in pbar:
+            x_small = x_small.to(device)
+            img_large = img_large.to(device)
+            labels = labels.to(device)
+            weights = weights.to(device)
+
+            optimizer.zero_grad()
+            preds = model(x_small, img_large, weights=weights, alpha=alphas)
+            loss = criterion(preds, labels)
+            loss.backward()
+            optimizer.step()
+
+            train_loss += loss.item()
+            pbar.set_postfix(loss=f"{loss.item():.4f}")
+        gc.collect()
+        torch.cuda.empty_cache()
+
+        avg_train_loss = train_loss / len(train_loader)
+
+        # Évaluation complète
+        val_loss, val_acc, val_prec, val_rec, val_f1 = validate(
+            model, val_loader, criterion, alphas, device
+        )
+
+        # Enregistrement dans l'historique
+        history["train_loss"].append(avg_train_loss)
+        history["val_loss"].append(val_loss)
+        history["val_acc"].append(val_acc)
+        history["val_prec"].append(val_prec)
+        history["val_rec"].append(val_rec)
+        history["val_f1"].append(val_f1)
+
+        # Affichage console
+        print(
+            f"\nÉpoque {epoch + 1} | Train Loss: {avg_train_loss:.4f} | Val Loss: {val_loss:.4f}"
+        )
+        print(
+            f"Metrics -> Acc: {val_acc:.2f}% | Prec: {val_prec:.2f}% | Rec: {val_rec:.2f}% | F1: {val_f1:.2f}%"
+        )
+
+        # Écriture dans le fichier de log
+        with open(log_path, "a") as f:
+            f.write(f"Époque {epoch + 1}/{epochs}\n")
+            f.write(f"Train Loss: {avg_train_loss:.4f} | Val Loss: {val_loss:.4f}\n")
+            f.write(
+                f"Accuracy: {val_acc:.2f}% | Precision: {val_prec:.2f}% | Recall: {val_rec:.2f}% | F1-Score: {val_f1:.2f}%\n"
+            )
+            f.write("-" * 50 + "\n")
+
+        # Sauvegarde du diagnostic visuel
+        x_s, x_l, lbl, w = next(iter(val_loader))
+        debug_full_diagnostic(
+            x_s.to(device),
+            x_l.to(device),
+            w.to(device),
+            model,
+            alphas,
+            lbl,
+            classes,
+            epoch + 1,
+            save_dir=save_path / "images",
+        )
+
+        # Sauvegarde du meilleur modèle
+        if val_acc > best_acc:
+            no_improve = 0
+            best_acc = val_acc
+            checkpoint = {
+                "epoch": epoch + 1,
+                "model_state_dict": model.state_dict(),
+                "optimizer_state_dict": optimizer.state_dict(),
+                "val_acc": val_acc,
+                "alpha_used": alphas.cpu(),
+            }
+            torch.save(checkpoint, save_path / "best_model_vit.pth")
+            print(" > Nouveau record ! Modèle sauvegardé.")
+            with open(log_path, "a") as f:
+                f.write(
+                    f"*** Nouveau meilleur modèle sauvegardé (Acc: {best_acc:.2f}%) ***\n\n"
+                )
+
+        else:
+            no_improve += 1
+            if no_improve >= patience:
+                print("early stop")
+                with open(log_path, "a") as f:
+                    f.write(
+                        f"Early stop à l'epoch: {epoch}, pas d'améloration depuis {patience} epochs"
+                    )
+                break
+
+    return history, best_acc

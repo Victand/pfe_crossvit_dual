@@ -1,5 +1,5 @@
 [project]
-name = "pfe"
+name = "pfe_crossvit_dual"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
@@ -23,6 +23,7 @@ dependencies = [
     "psutil",
     "pyyaml>=5.3.1",
     "requests>=2.23.0",
+    "ruff>=0.15.10",
     "scikit-learn>=1.8.0",
     "scipy>=1.4.1",
     "seaborn>=0.11.0",
@@ -43,11 +44,5 @@ dependencies = [
 requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
-[tool.setuptools]
-packages = ["CrossViT", "YOLOv7_ag", "script"]
-
-[tool.setuptools.package-dir]
-# On dit à Python : "Le package CrossViT se trouve en fait à ce chemin là"
-"CrossViT" = "YOLOv7_ag/src/CrossViT"
-"YOLOv7_ag" = "YOLOv7_ag"
-"script" = "script"
+[tool.setuptools.packages.find]
+where = ["src"]

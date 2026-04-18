@@ -1,0 +1,40 @@
+
+
+preprocessing:
+  clean: True
+  limit: null
+
+
+training:
+  resume_path: null
+  lr: 0.0001
+  epochs: 10
+  patience: 5
+  batch_size: 8
+
+  alphas: [1.0, 1.0, 5.0, 1.0, 1.0, 1.0, 0.2]
+
+  dataset: 
+    classes: ["no_epines", "epines"]
+    n_samples: null
+    num_workers: 2
+    paths: ["original", "segmented"]
+    use_yolo_weights: True
+
+    # when not using yolo weights
+    weighed_patches: True
+    weight_function: "linear"
+
+    # when using yolo weights
+    num_patches: 16
+    patch_quotas: {0: 4, 1: 0, 2: 10, 3: 2}  # (0:leaf, 1:root, 2:stem, 3:flower)
+    
+
+  model:
+    cross_vit: "crossvit_15_224"
+    img_size: [224, 224] # [240, 224]
+    patch_size: [16, 16]
+    embed_dim: [192, 384]
+    depth: [[1, 5, 0], [1, 5, 0], [1, 5, 0]]
+    num_heads: [6, 6]
+    mlp_ratio: [3.0, 3.0, 1.0]
