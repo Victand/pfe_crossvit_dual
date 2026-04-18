@@ -32,6 +32,7 @@ class DualInputDataset(Dataset):
         use_yolo_weights=False,
         num_patches=16,
         patch_quotas=None,
+        use_cache=False
     ):
         self.data_dir = Path(data_dir)
         self.is_train = is_train
@@ -44,6 +45,7 @@ class DualInputDataset(Dataset):
         self.numbranches = 2
         self.use_yolo_weights = use_yolo_weights
         self.num_patches = num_patches
+        self.use_cache = use_cache
 
         # --- QUOTAS ALIGNÉS SUR TON YAML (0:leaf, 1:root, 2:stem, 3:flower) ---
         if patch_quotas is None:
@@ -60,6 +62,7 @@ class DualInputDataset(Dataset):
         self.all_transforms = ALL_TRANSFORMS
         self.active_transforms = {transform: True for transform in self.all_transforms}
         self.samples = []
+        self.cache = {}
         self.classes_count = {self.classes[0]: 0, self.classes[1]: 0}
         self.load_samples()
 
@@ -89,6 +92,9 @@ class DualInputDataset(Dataset):
         return len(self.samples)
 
     def __getitem__(self, idx):
+        if self.use_cache and idx in self.cache:
+            return self.cache[idx]
+        
         original_image_p, segmented_image_p, label_int = self.samples[idx]
         original_image = Image.open(original_image_p).convert("RGB")
 
@@ -160,6 +166,10 @@ class DualInputDataset(Dataset):
             TF.normalize(p, self.mean, self.std) if p.max() > 0 else p
             for p in final_list
         ]
+        # Caching
+        if self.use_cache:
+            self.cache[idx] = torch.stack(selected_patches), img_large, label_int, weights
+
         return torch.stack(selected_patches), img_large, label_int, weights
 
     def set_active_transforms(self, active_transforms_list):
