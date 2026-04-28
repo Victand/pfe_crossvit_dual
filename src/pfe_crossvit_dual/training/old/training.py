@@ -5,7 +5,7 @@ import time
 import numpy as np
 import datetime
 
-from pfe_crossvit_dual.training.model.IoULoss import IoUConstrainedLoss
+from pfe_crossvit_dual.training.old.IoULoss import IoUConstrainedLoss
 from pfe_crossvit_dual.training.utils.writersAndPlotters import *
 from pfe_crossvit_dual.training.model.attentionRollout import (
     get_trainable_heatmap,

@@ -8,7 +8,6 @@ import matplotlib.pyplot as plt
 import torch
 import torch.nn.functional as nnTF
 import matplotlib.gridspec as gridspec
-from tqdm import tqdm
 from PIL import Image, ImageFile
 from pfe_crossvit_dual.training.utils.weight_functions import linear_
 from pfe_crossvit_dual.constants.paths import DATA_DIR
@@ -32,8 +31,7 @@ class DualInputDataset(Dataset):
         weight_function=linear_,
         use_yolo_weights=False,
         num_patches=16,
-        patch_quotas={0:2, 1:0, 2:12, 3:2},
-        precompute=False
+        patch_quotas={0: 2, 1: 0, 2: 12, 3: 2},
     ):
         self.data_dir = Path(data_dir)
         self.is_train = is_train
@@ -56,13 +54,6 @@ class DualInputDataset(Dataset):
         self.cache = {}
         self.classes_count = {self.classes[0]: 0, self.classes[1]: 0}
         self.load_samples()
-
-        self.precomputed = False
-        if precompute:
-            self.data = []
-            for idx in tqdm(range(len(self.samples)), desc="precomputing dataset"):
-                self.data.append(self[idx])
-            self.precomputed = True
 
     def load_samples(self):
         phase = "train" if self.is_train else "val"
@@ -90,9 +81,7 @@ class DualInputDataset(Dataset):
         return len(self.samples)
 
     def __getitem__(self, idx):
-        if self.precomputed:
-            return self.data[idx]
-        
+
         original_image_p, segmented_image_p, label_int = self.samples[idx]
         original_image = Image.open(original_image_p).convert("RGB")
 

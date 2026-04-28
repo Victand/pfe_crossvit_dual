@@ -17,10 +17,9 @@ training:
   dataset: 
     classes: ["no_epines", "epines"]
     paths: ["original", "segmented"]
-    precompute: True
     n_samples: null
     num_workers: 2
-    use_yolo_weights: True
+    use_yolo_weights: False
 
     # when not using yolo weights
     weighed_patches: True

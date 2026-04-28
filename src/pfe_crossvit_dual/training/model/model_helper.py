@@ -1,6 +1,6 @@
 import torch
 
-from pfe_crossvit_dual.training.model.dual_cross_vic import DualCrossVit
+from pfe_crossvit_dual.training.model.dual_crossvit import DualCrossVit
 from pfe_crossvit_dual.training.model.model_loaders import (
     load_crossvit_pretrained_weights,
 )
