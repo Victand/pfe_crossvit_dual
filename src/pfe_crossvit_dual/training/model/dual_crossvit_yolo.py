@@ -1,12 +1,7 @@
 import torch
 import torch.nn as nn
-
 from timm.layers.drop import DropPath
 from timm.layers.mlp import Mlp
-import sys
-import os
-
-sys.path.append(os.path.abspath(".."))
 
 from CrossViT.models import crossvit
 
@@ -264,9 +259,6 @@ class MultiScaleBlock(nn.Module):
             if len(tmp) != 0:
                 self.blocks.append(nn.Sequential(*tmp))
 
-        if len(self.blocks) == 0:
-            self.blocks = None
-
         self.projs = nn.ModuleList()
         for d in range(num_branches):
             if dim[d] == dim[(d + 1) % num_branches] and False:
@@ -347,7 +339,7 @@ class MultiScaleBlock(nn.Module):
         return outs
 
 
-class DualCrossVit(crossvit.VisionTransformer):
+class DualCrossVitYolo(crossvit.VisionTransformer):
     """
     Custom CrossVit class to accept two images in input : Original/detoured herb image.
     Inherits from the standard VisionTransformer (CrossViT implementation).
@@ -427,7 +419,7 @@ class DualCrossVit(crossvit.VisionTransformer):
             dpr_ptr += curr_depth
             self.blocks.append(blk)
 
-    def forward_features(self, x_small, x_large, weights, num_patches):
+    def forward_features(self, x_small, x_large, weights, num_patches):  # pyright: ignore[reportIncompatibleMethodOverride]
         B_large = x_large.shape[0]
 
         tmp_s = self.patch_embed[0](x_small)
@@ -496,7 +488,7 @@ class DualCrossVit(crossvit.VisionTransformer):
         xs = [self.norm[i](x) for i, x in enumerate(xs)]
         return [x[:, 0] for x in xs]
 
-    def forward(self, x_small, x_large, weights=None, alpha=None):
+    def forward(self, x_small, x_large, weights=None, alpha=None):  # pyright: ignore[reportIncompatibleMethodOverride]
         B, N, C, H, W = x_small.shape
 
         # 1. Mixage de la Heatmap avec Alpha
@@ -523,6 +515,6 @@ class DualCrossVit(crossvit.VisionTransformer):
 
         # 3. Features et Logits
         xs = self.forward_features(x_small, x_large, weights, num_patches=N)
-        ce_logits = [self.head[i](x) for i, x in enumerate(xs)]
+        ce_logits = [self.head[i](x) for i, x in enumerate(xs)]  # pyright: ignore[reportIndexIssue]
 
         return torch.mean(torch.stack(ce_logits, dim=0), dim=0)

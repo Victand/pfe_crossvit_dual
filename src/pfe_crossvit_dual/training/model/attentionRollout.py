@@ -20,7 +20,6 @@ On transforme le vecteur en grille (15x15 si image 240 et patch size 16) puis fa
 
 """
 
-from pfe_crossvit_dual.training.model.dual_crossvit import DualCrossVit
 
 import torch
 import torch.nn as nn

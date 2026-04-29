@@ -7,18 +7,18 @@ preprocessing:
 
 training:
   resume_path: null
-  lr: 0.00003
+  lr: 0.0001
   epochs: 50
   patience: 10
-  batch_size: 32
+  batch_size: 8
 
-  alphas: [1.0, 1.0, 5.0, 1.0, 1.0, 1.0, 0.2]
+  alphas: [1.0, 1.0, 5.0, 1.0, 1.0, 1.0, 0.2] # [leaf, root, stem, flower, fruit, seed, FOND]
 
   dataset: 
-    classes: ["no_epines", "epines"]
-    paths: ["original", "segmented"]
+    data_dir: "data/genera"
     transforms: ["random_crop", "random_hflip", "random_grayscale", "color_jitter", "gaussian_blur", "random_affine", "random_erase"] # ["random_crop", "random_hflip", "color_jitter", "random_erase"]
     use_yolo_weights: True
+    train_split: 0.8
     n_samples: null # 'null' for all
     num_workers: 0
     precompute: True # precompute all expensive deterministic io tasks
@@ -35,8 +35,8 @@ training:
     
 
   model:
-    model_name: "dual_crossvic"
-    cross_vit: "crossvit_tiny_224"
+    model_name: "dual_crossvit_yolo"
+    cross_vit: "crossvit_15_224"
     img_size: [224, 224] # [240, 224]
     patch_size: [16, 16]
     embed_dim: [192, 384]

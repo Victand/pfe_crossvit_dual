@@ -2,6 +2,12 @@ import os
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.gridspec import GridSpec
+
+from pfe_crossvit_dual.training.dataset.dual_input_dataset import (
+    IMGNET_MEAN,
+    IMGNET_STD,
+)
 
 
 def debug_full_diagnostic(
@@ -11,7 +17,7 @@ def debug_full_diagnostic(
     model,
     alphas,
     labels,
-    classes,
+    id_to_label,
     epoch,
     save_dir="saved/images",
 ):
@@ -30,12 +36,12 @@ def debug_full_diagnostic(
         grid_size = int(cls_attn.shape[-1] ** 0.5)
         vis = cls_attn.reshape(grid_size, grid_size).cpu().numpy()
 
-    mean, std = np.array([0.485, 0.456, 0.406]), np.array([0.229, 0.224, 0.225])
+    mean, std = np.array(IMGNET_MEAN), np.array(IMGNET_STD)
     img_vis = img_large[0].permute(1, 2, 0).cpu().numpy()
     img_vis = np.clip(std * img_vis + mean, 0, 1)
 
     fig = plt.figure(figsize=(22, 10))
-    gs = plt.GridSpec(2, 4, width_ratios=[1.2, 1.2, 0.8, 0.8])
+    gs = GridSpec(2, 4, width_ratios=[1.2, 1.2, 0.8, 0.8])
 
     ax1 = fig.add_subplot(gs[:, 0])
     ax1.imshow(img_vis)
@@ -47,7 +53,7 @@ def debug_full_diagnostic(
             .numpy()
         )
         ax1.imshow(h_map, cmap="jet", alpha=0.3)
-    ax1.set_title(f"INPUT (Image + Heatmap)\nClasse: {classes[labels[0]]}")
+    ax1.set_title(f"INPUT (Image + Heatmap)\nClasse: {id_to_label[int(labels[0])]}")
     ax1.axis("off")
 
     ax2 = fig.add_subplot(gs[:, 1])

@@ -12,8 +12,15 @@
             "console": "integratedTerminal",
             "envFile": "${workspaceFolder}/.env",
             "args": [
-                "--data_dir",
-                "/mnt/shared/Documents/cours/PFE/pfe-repo/data/01_raw/thorns"
+                // dataset type 'thorns' or 'genera'
+                "--dataset", 
+                "genera",
+                // input directory
+                "--input_dir",
+                "data/genera_raw",
+                // output directory
+                "--output_dir",
+                "data/genera"
             ]
         },
         {
@@ -24,8 +31,13 @@
             "console": "integratedTerminal",
             "envFile": "${workspaceFolder}/.env",
             "args": [
-                "--clean",
-                //"-- limit 100"
+                //
+                "--data_dir",
+                "data/genera",
+                // replace .pt if enabled else skip existing
+                //"--clean",
+                //
+                // "-- limit 100"
             ]
         },
         {

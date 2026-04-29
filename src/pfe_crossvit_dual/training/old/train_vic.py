@@ -18,7 +18,7 @@ src_path = str(Path(__file__).parent / "src")
 if src_path not in sys.path:
     sys.path.append(src_path)"""
 
-from pfe_crossvit_dual.training.model.dual_cross_vic import DualCrossVit
+from pfe_crossvit_dual.training.model.dual_crossvit_yolo import DualCrossVit
 from pfe_crossvit_dual.training.old.dataset_vic import (
     DualInputDataset,
     prepare_dataloaders,

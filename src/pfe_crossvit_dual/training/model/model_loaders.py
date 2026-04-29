@@ -1,32 +1,7 @@
 import torch
 import torch.nn as nn
-import torch.optim as optim
 from PIL.Image import Image
 import torchvision.transforms.functional as TF
-
-from pfe_crossvit_dual.training.model.dual_crossvit import DualCrossVit
-
-
-def instanciateDualCrossVit(model_name, device, lr, epochs, **model_kwargs):
-    """
-    Instanciate a DualCrossVit model, an Adam optimizer, a CosineAnnealing lr scheduler and a CrossEntropy loss function.
-    """
-    if "num_classes" not in model_kwargs:
-        model_kwargs["num_classes"] = 2
-
-    model = DualCrossVit(**model_kwargs)
-
-    model = load_crossvit_pretrained_weights(model, model_name)
-
-    model.to(device)
-
-    optimizer = optim.Adam(params=model.parameters(), lr=lr, weight_decay=1e-4)
-
-    scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs)
-
-    loss_fn = nn.CrossEntropyLoss()
-
-    return model, optimizer, scheduler, loss_fn
 
 
 def load_crossvit_pretrained_weights(model, model_name="crossvit_15_224", dev=False):
@@ -110,30 +85,6 @@ def load_weights_for_symmetric_crossvit(
 
         elif "cls_token.1" in k:
             pass
-
-
-def instanciate_load_prepare_model(state_dict_path, device, **model_config):
-    """
-    Instanciate a DualCrossVit model, load the saved state dict, put the model to device and in eval mode.
-    """
-    model = DualCrossVit(**model_config)
-
-    checkpoint = torch.load(state_dict_path, map_location=device)
-
-    if "model_state_dict" in checkpoint:
-        state_dict = checkpoint["model_state_dict"]
-    elif "state_dict" in checkpoint:
-        state_dict = checkpoint["state_dict"]
-    else:
-        state_dict = checkpoint
-
-    msg = model.load_state_dict(state_dict, strict=True)
-    print(f"Chargement terminé : {msg}")
-
-    model.to(device)
-    model.eval()
-
-    return model
 
 
 def get_images_both_branches_as_tensors(

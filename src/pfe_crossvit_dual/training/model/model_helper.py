@@ -1,8 +1,8 @@
 import torch
 import sys
 
-import pfe_crossvit_dual.training.model.dual_crossvit as dual_crossvit
-import pfe_crossvit_dual.training.model.dual_cross_vic as dual_crossvic
+from pfe_crossvit_dual.training.model.dual_crossvit_ratio import DualCrossVitRatio
+from pfe_crossvit_dual.training.model.dual_crossvit_yolo import DualCrossVitYolo
 from pfe_crossvit_dual.training.model.model_loaders import (
     load_crossvit_pretrained_weights,
 )
@@ -25,10 +25,10 @@ def instanciate_dualcrossvit(cross_vit, model_name, device, **model_kwargs):
     if "num_classes" not in model_kwargs:
         model_kwargs["num_classes"] = 2
 
-    if model_name == "dual_crossvit":
-        model = dual_crossvit.DualCrossVit(**model_kwargs)
-    elif model_name == "dual_crossvic":
-        model = dual_crossvic.DualCrossVit(**model_kwargs)
+    if model_name == "dual_crossvit_ratio":
+        model = DualCrossVitRatio(**model_kwargs)
+    elif model_name == "dual_crossvit_yolo":
+        model = DualCrossVitYolo(**model_kwargs)
     else:
         print(f"{model_name} is not a valid model")
         sys.exit(0)

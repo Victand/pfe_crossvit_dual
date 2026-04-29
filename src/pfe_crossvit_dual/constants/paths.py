@@ -1,7 +1,5 @@
 CONFIG = "config/parameters.yaml"
 
-DATA_DIR = "data/created_data"
-
 CACHE_DIR = "data/cache"
 
 OUTPUT_DIR = "output"

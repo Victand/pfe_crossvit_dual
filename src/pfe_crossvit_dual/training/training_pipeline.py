@@ -5,7 +5,7 @@ import torch.nn as nn
 import os
 from pathlib import Path
 
-from pfe_crossvit_dual.constants.paths import CONFIG, DATA_DIR, OUTPUT_DIR
+from pfe_crossvit_dual.constants.paths import CONFIG, OUTPUT_DIR
 from pfe_crossvit_dual.training.dataset.data_helper import get_data
 from pfe_crossvit_dual.training.model.model_helper import (
     instanciate_dualcrossvit,
@@ -58,8 +58,7 @@ def training_pipeline(config):
         save_path.mkdir(parents=True, exist_ok=True)
 
     # data
-    train_loader, val_loader = get_data(
-        data_dir=DATA_DIR,
+    train_loader, val_loader, id_to_label = get_data(
         img_size=config["model"]["img_size"],
         batch_size=config["batch_size"],
         **config["dataset"],
@@ -70,7 +69,7 @@ def training_pipeline(config):
     model = instanciate_dualcrossvit(
         device=device,
         **config["model"],
-        num_classes=len(config["dataset"]["classes"]),
+        num_classes=len(id_to_label),
     )
     optimizer = optim.Adam(
         params=model.parameters(), lr=config["lr"], weight_decay=1e-4
@@ -99,7 +98,7 @@ def training_pipeline(config):
         optimizer,
         criterion,
         alphas,
-        config["dataset"]["classes"],
+        id_to_label,
         config["epochs"],
         config["patience"],
         device,

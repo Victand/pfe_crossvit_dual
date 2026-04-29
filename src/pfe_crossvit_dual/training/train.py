@@ -14,7 +14,7 @@ def validate(model, loader, criterion, alphas, device):
     all_labels = []
 
     with torch.no_grad():
-        for x_small, img_large, labels, weights in loader:
+        for x_small, img_large, weights, labels in loader:
             x_small = x_small.to(device)
             img_large = img_large.to(device)
             labels = labels.to(device)
@@ -49,7 +49,7 @@ def train(
     optimizer,
     criterion,
     alphas,
-    classes,
+    id_to_label,
     epochs,
     patience,
     device,
@@ -77,7 +77,7 @@ def train(
         train_loss = 0.0
         pbar = tqdm(train_loader, desc=f"Époque {epoch + 1}/{epochs}")
 
-        for x_small, img_large, labels, weights in pbar:
+        for x_small, img_large, weights, labels in pbar:
             x_small = x_small.to(device, non_blocking=True)
             img_large = img_large.to(device, non_blocking=True)
             labels = labels.to(device, non_blocking=True)
@@ -127,7 +127,7 @@ def train(
             f.write("-" * 50 + "\n")
 
         # Sauvegarde du diagnostic visuel
-        x_s, x_l, lbl, w = next(iter(val_loader))
+        x_s, x_l, w, lbl = next(iter(val_loader))
         debug_full_diagnostic(
             x_s.to(device),
             x_l.to(device),
@@ -135,7 +135,7 @@ def train(
             model,
             alphas,
             lbl,
-            classes,
+            id_to_label,
             epoch + 1,
             save_dir=save_path / "images",
         )
