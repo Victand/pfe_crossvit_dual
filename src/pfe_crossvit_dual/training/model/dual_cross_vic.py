@@ -233,7 +233,7 @@ class MultiScaleBlock(nn.Module):
         qk_scale=None,
         drop=0.0,
         attn_drop=0.0,
-        drop_path=0.0,
+        drop_path=[],
         act_layer=nn.GELU,
         norm_layer=nn.LayerNorm,
     ):

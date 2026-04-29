@@ -1,5 +1,6 @@
 from pathlib import Path
 import random
+import numpy as np
 from torch.utils.data import Dataset
 import torchvision.transforms.functional as TF
 import torchvision.transforms.v2 as v2
@@ -9,10 +10,11 @@ import torch
 import torch.nn.functional as nnTF
 import PIL
 from PIL import ImageFile
-from pfe_crossvit_dual.training.utils.weight_functions import linear_
-from pfe_crossvit_dual.constants.paths import DATA_DIR
 from collections import defaultdict
 from tqdm import tqdm
+
+from pfe_crossvit_dual.training.utils.weight_functions import linear_
+from pfe_crossvit_dual.constants.paths import DATA_DIR, CACHE_DIR
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
@@ -36,11 +38,13 @@ class DualInputDataset(Dataset):
         weight_function=linear_,
         transforms=None,
         precompute=False,
+        store_cache=False,
         num_patches=16,
         patch_quotas={0: 2, 1: 0, 2: 12, 3: 2},
     ):
         # data
         self.data_dir = Path(data_dir)
+        self.cache_dir = Path(CACHE_DIR)
         self.is_train = is_train
         self.image_size = img_size
         self.patch_size = patch_size
@@ -59,12 +63,13 @@ class DualInputDataset(Dataset):
         self.samples = []
         self._index_files()
         if n_samples is not None:
+            np.random.shuffle(self.samples)
             self.samples = self.samples[:n_samples]
         # precomputing
         self._cache = []
         self.precomputed = precompute
         if precompute:
-            self._precompute_all()
+            self._precompute_all(store_cache)
 
     def _index_files(self):
         phase = "train" if self.is_train else "val"
@@ -97,9 +102,18 @@ class DualInputDataset(Dataset):
         spatial_tf = []
         if "random_crop" in transforms:
             spatial_tf.append(v2.RandomResizedCrop(self.image_size, scale=(0.85, 1.0)))
-        if "hflip" in transforms:
+        if "random_hflip" in transforms:
             spatial_tf.append(v2.RandomHorizontalFlip())
         self.spatial_tf = v2.Compose(spatial_tf) if spatial_tf else v2.Identity()
+        if "random_affine" in transforms:
+            spatial_tf.append(
+                v2.RandomAffine(
+                    degrees=10,  # type: ignore
+                    translate=(0.05, 0.05),
+                    scale=(0.9, 1.1),
+                    shear=5,
+                )
+            )
 
         # color transforms
         color_tf = []
@@ -107,6 +121,10 @@ class DualInputDataset(Dataset):
             color_tf.append(
                 v2.ColorJitter([0.6, 1.4], [0.6, 1.4], [0.6, 1.4], [-0.1, 0.1])
             )
+        if "random_grayscale" in transforms:
+            color_tf.append(v2.RandomGrayscale(p=0.1))
+        if "gaussian_blur" in transforms:
+            color_tf.append(v2.GaussianBlur(kernel_size=3, sigma=(0.1, 2.0)))
         self.color_tf = v2.Compose(color_tf) if color_tf else v2.Identity()
 
         # normalization
@@ -117,8 +135,17 @@ class DualInputDataset(Dataset):
             ]
         )
 
-    def _precompute_all(self, in_ram=True):
-        """precompute all io and expensive deterministic tasks (ie not random transforms)"""
+    def _precompute_all(self, store_cache=True):
+        """precompute all io tasks and expensive deterministic tasks (ie not random transforms)"""
+        phase = "train" if self.is_train else "val"
+        datatype = "yolo" if self.use_yolo_weights else "ratio"
+        cache_fp = self.cache_dir / f"precomputed_{datatype}_{phase}.pt"
+
+        if store_cache and cache_fp.is_file():
+            self._cache = torch.load(cache_fp)
+            print(f"using cached precomputed data at path {cache_fp}")
+            return
+
         for img_p, seg_p, weight_p, label in tqdm(
             self.samples, desc="precomputing dataset"
         ):
@@ -139,6 +166,9 @@ class DualInputDataset(Dataset):
                 patches = self._select_patches(yolo_patches)
 
                 self._cache.append((img, mask, patches, label))
+
+        if store_cache:
+            torch.save(self._cache, cache_fp)
 
     def _getitem_ratio_weight(self, idx):
         """

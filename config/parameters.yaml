@@ -7,34 +7,35 @@ preprocessing:
 
 training:
   resume_path: null
-  lr: 0.0001
-  epochs: 10
-  patience: 5
-  batch_size: 2
+  lr: 0.00003
+  epochs: 50
+  patience: 10
+  batch_size: 32
 
   alphas: [1.0, 1.0, 5.0, 1.0, 1.0, 1.0, 0.2]
 
   dataset: 
     classes: ["no_epines", "epines"]
     paths: ["original", "segmented"]
-    transforms: ["random_crop", "hflip", "color_jitter", "random_erase"]
-    n_samples: null
+    transforms: ["random_crop", "random_hflip", "random_grayscale", "color_jitter", "gaussian_blur", "random_affine", "random_erase"] # ["random_crop", "random_hflip", "color_jitter", "random_erase"]
+    use_yolo_weights: True
+    n_samples: null # 'null' for all
     num_workers: 0
-    precompute: True
+    precompute: True # precompute all expensive deterministic io tasks
+    store_cache: True # to store precomputed data on disk and use it if exists
 
     # when not using yolo weights
     weighted_patches: True
     weight_function: "linear"
 
     # when using yolo weights
-    use_yolo_weights: True
     num_patches: 16
-    patch_quotas: {0: 4, 1: 0, 2: 10, 3: 2}  # (0:leaf, 1:root, 2:stem, 3:flower)
+    patch_quotas: {0: 4, 1: 0, 2: 10, 3: 2, 4: 0, 5: 0, 6: 0}  # [0:leaf, 1:root, 2:stem, 3:flower, 4:fruit, 5:seed, 6:FOND]
     
 
   model:
     model_name: "dual_crossvic"
-    cross_vit: "crossvit_15_224"
+    cross_vit: "crossvit_tiny_224"
     img_size: [224, 224] # [240, 224]
     patch_size: [16, 16]
     embed_dim: [192, 384]
