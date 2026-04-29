@@ -3,7 +3,7 @@ import random
 from torch.utils.data import Dataset
 import torchvision.transforms.functional as TF
 import torchvision.transforms.v2 as v2
-from torchvision.tv_tensors import Image, Mask
+from torchvision.tv_tensors import Image
 import torchvision.io as io
 import torch
 import torch.nn.functional as nnTF
@@ -57,42 +57,16 @@ class DualInputDataset(Dataset):
         self._build_transforms(transforms if transforms is not None else [])
         # samples
         self.samples = []
-        self._index_files(n_samples)
+        self._index_files()
+        if n_samples is not None:
+            self.samples = self.samples[:n_samples]
         # precomputing
         self._cache = []
         self.precomputed = precompute
         if precompute:
             self._precompute_all()
 
-    def _build_transforms(self, transforms, mean=IMGNET_MEAN, std=IMGNET_STD):
-        # random erase
-        self.random_erase = "random_erase" in transforms
-
-        # sptatial transforms
-        spatial_tf = []
-        if "random_crop" in transforms:
-            spatial_tf.append(v2.RandomResizedCrop(self.image_size, scale=(0.85, 1.0)))
-        if "hflip" in transforms:
-            spatial_tf.append(v2.RandomHorizontalFlip())
-        self.spatial_tf = v2.Compose(spatial_tf)
-
-        # color transforms
-        color_tf = []
-        if "color_jitter" in transforms:
-            color_tf.append(
-                v2.ColorJitter([0.6, 1.4], [0.6, 1.4], [0.6, 1.4], [-0.1, 0.1])
-            )
-        self.color_tf = v2.Compose(color_tf) if color_tf else v2.Identity()
-
-        # normalization
-        self.normalize = v2.Compose(
-            [
-                v2.ToDtype(torch.float32, scale=True),
-                v2.Normalize(mean=mean, std=std),
-            ]
-        )
-
-    def _index_files(self, n_samples = None):
+    def _index_files(self):
         phase = "train" if self.is_train else "val"
         for label_int, _class in enumerate(self.classes):
             original_path = self.data_dir / phase / self.paths[0] / _class
@@ -114,13 +88,40 @@ class DualInputDataset(Dataset):
                 self.samples.append(
                     (original_img_p, segmented_img_p, weight_p, label_int)
                 )
-        if n_samples is not None:
-            self.samples = self.samples[:n_samples]
 
-    def _precompute_all(self, in_ram=False):
+    def _build_transforms(self, transforms, mean=IMGNET_MEAN, std=IMGNET_STD):
+        # random erase
+        self.random_erase = "random_erase" in transforms
+
+        # sptatial transforms
+        spatial_tf = []
+        if "random_crop" in transforms:
+            spatial_tf.append(v2.RandomResizedCrop(self.image_size, scale=(0.85, 1.0)))
+        if "hflip" in transforms:
+            spatial_tf.append(v2.RandomHorizontalFlip())
+        self.spatial_tf = v2.Compose(spatial_tf) if spatial_tf else v2.Identity()
+
+        # color transforms
+        color_tf = []
+        if "color_jitter" in transforms:
+            color_tf.append(
+                v2.ColorJitter([0.6, 1.4], [0.6, 1.4], [0.6, 1.4], [-0.1, 0.1])
+            )
+        self.color_tf = v2.Compose(color_tf) if color_tf else v2.Identity()
+
+        # normalization
+        self.normalize = v2.Compose(
+            [
+                v2.ToDtype(torch.float32, scale=True),
+                v2.Normalize(mean=mean, std=std),
+            ]
+        )
+
+    def _precompute_all(self, in_ram=True):
         """precompute all io and expensive deterministic tasks (ie not random transforms)"""
-        for img_p, seg_p, weight_p, label in tqdm(self.samples, desc="precomputing dataset"):
-
+        for img_p, seg_p, weight_p, label in tqdm(
+            self.samples, desc="precomputing dataset"
+        ):
             img = read_image(img_p)
             img = Image(img)
             img = TF.resize(img, self.image_size)
@@ -131,18 +132,13 @@ class DualInputDataset(Dataset):
                 seg = TF.resize(img, self.image_size)
 
                 self._cache.append((img, seg, label))
-
             else:
                 yolo_weight = torch.load(weight_p)
                 mask = yolo_weight["global_heatmap"].squeeze(0)
-                # get patches
                 yolo_patches = yolo_weight["patches"]
                 patches = self._select_patches(yolo_patches)
 
                 self._cache.append((img, mask, patches, label))
-
-    def __len__(self):
-        return len(self.samples)
 
     def _getitem_ratio_weight(self, idx):
         """
@@ -157,17 +153,90 @@ class DualInputDataset(Dataset):
             img_seg = read_image(seg_image_p)
 
         # transform
-        img, img_seg = self.apply_transforms(img, img_seg, False)
+        img = Image(img)
+        img_seg = Image(img_seg)
+        if self.is_train:
+            img, img_seg = self.spatial_tf(img, img_seg)
+            img = self.color_tf(img)
+            if self.random_erase:
+                img, img_seg = erase_pair(img, img_seg)
+        else:
+            img = TF.resize(img, self.image_size)
+            img_seg = TF.resize(img_seg, self.image_size)
+        img, img_seg = self.normalize(img, img_seg)
 
         # get weight
         weights = (
-            self.patches_weights(img_seg, self.patch_size[0], self.weight_function)
+            self._patches_weights(img_seg, self.patch_size[0], self.weight_function)
             if self.weighted_patches
             else torch.empty(0)
         )
 
         return img_seg, img, label, weights
-    
+
+    def _getitem_yolo_weight(self, idx):
+        """
+        Get items with yolo weights
+        """
+        # get data
+        if self.precomputed:
+            img, mask, patches, label = self._cache[idx]
+        else:
+            image_p, _, weight_p, label = self.samples[idx]
+
+            img = read_image(image_p)
+            yolo_weight = torch.load(weight_p)
+            mask = yolo_weight["global_heatmap"].squeeze(0)
+            # get patches
+            yolo_patches = yolo_weight["patches"]
+            patches = self._select_patches(yolo_patches)
+
+        # transforms
+        img = Image(img)
+        if self.is_train:
+            img = self.spatial_tf(img)
+            patches = torch.stack([self.spatial_tf(p) for p in patches])
+            img = self.color_tf(img)
+            patches = torch.stack([self.color_tf(p) for p in patches])
+            if self.random_erase:
+                img = erase(img)
+                patches = torch.stack([erase(p) for p in patches])
+        else:
+            img = TF.resize(img, self.image_size)
+            # patches resize to 224 224 already handled in preprocessing
+        img = self.normalize(img)
+        patches = torch.stack([self.normalize(p) for p in patches])
+
+        return patches, img, label, mask
+
+    def __getitem__(self, idx):
+        if not self.use_yolo_weights:
+            return self._getitem_ratio_weight(idx)
+        else:
+            return self._getitem_yolo_weight(idx)
+
+    def __len__(self):
+        return len(self.samples)
+
+    def _patches_weights(self, segmented_tensor, patch_size: int, f=lambda x: x + 1e-7):
+        mask = (
+            (torch.sum(segmented_tensor, dim=0) > 0)
+            .float()
+            .unsqueeze(dim=0)
+            .unsqueeze(0)
+        )
+        patches = nnTF.unfold(mask, kernel_size=patch_size, stride=patch_size).squeeze(
+            0
+        )
+        ratios = torch.mean(patches, dim=0)
+        num_p = ratios.numel()
+        w_norm = (
+            torch.ones(num_p)
+            if not ratios.sum() > 0
+            else f(ratios) * num_p / (f(ratios).sum() + 1e-8)
+        )
+        return torch.unsqueeze(w_norm, dim=1)
+
     def _select_patches(self, yolo_patches):
         patches = []
 
@@ -202,86 +271,7 @@ class DualInputDataset(Dataset):
             ]
             patches.extend(padding)
 
-            # normalize patches
-        selected_patches = torch.stack(
-            [self.normalize(p) if p.max() > 0 else p for p in patches]
-        )
-        return selected_patches
-
-    def _getitem_yolo_weight(self, idx):
-        """
-        Get items with yolo weights
-        """
-        # get data
-        if self.precomputed:
-            img, mask, patches, label = self._cache[idx]
-        else:
-            image_p, _, weight_p, label = self.samples[idx]
-
-            img = read_image(image_p)
-            yolo_weight = torch.load(weight_p)
-            mask = yolo_weight["global_heatmap"].squeeze(0)
-            # get patches
-            yolo_patches = yolo_weight["patches"]
-            patches = self._select_patches(yolo_patches)
-
-        # transforms
-        img, mask = self.apply_transforms(img, mask, True)
-
-        return patches, img, label, mask
-
-    def __getitem__(self, idx):
-        if not self.use_yolo_weights:
-            return self._getitem_ratio_weight(idx)
-        else:
-            return self._getitem_yolo_weight(idx)
-
-    def patches_weights(self, segmented_tensor, patch_size: int, f=lambda x: x + 1e-7):
-        mask = (
-            (torch.sum(segmented_tensor, dim=0) > 0)
-            .float()
-            .unsqueeze(dim=0)
-            .unsqueeze(0)
-        )
-        patches = nnTF.unfold(mask, kernel_size=patch_size, stride=patch_size).squeeze(
-            0
-        )
-        ratios = torch.mean(patches, dim=0)
-        num_p = ratios.numel()
-        w_norm = (
-            torch.ones(num_p)
-            if not ratios.sum() > 0
-            else f(ratios) * num_p / (f(ratios).sum() + 1e-8)
-        )
-        return torch.unsqueeze(w_norm, dim=1)
-
-    def apply_transforms(self, img, seg, is_mask=False):
-        """Synchornized transform on img AND mask or heatmap"""
-        img = Image(img)
-        seg = Mask(seg) if is_mask else Image(seg)
-
-        if is_mask:
-            if self.is_train:
-                img = self.spatial_tf(img)
-                img = self.color_tf(img)
-                if self.random_erase:
-                    img = erase(img)
-            else:
-                img = TF.resize(img, self.image_size)
-            img = self.normalize(img)
-
-        else:
-            if self.is_train:
-                img, seg = self.spatial_tf(img, seg)
-                img = self.color_tf(img)
-                if self.random_erase:
-                    img, seg = erase_pair(img, seg)
-            else:
-                img = TF.resize(img, self.image_size)
-                seg = TF.resize(seg, self.image_size)
-            img, seg = self.normalize(img, seg)
-
-        return img, seg
+        return torch.stack(patches)
 
 
 def read_image(path):

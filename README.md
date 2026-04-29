@@ -3,8 +3,6 @@
 
 Ce projet utilise **uv** pour la gestion des dépendances et du verrouillage des versions (`uv.lock`). Il permet de préparer des données via **YOLOv7** et d'entraîner un modèle **DualCrossViT**.
 
-
-Je dois changer des trucs genre les dossiers si ya plus de catégories ça va être trop lourd enpretraitement donc chiantos
 ## 1. Installation
 
 Comme le projet contient un fichier `uv.lock`, utilisez la commande suivante pour synchroniser votre environnement :

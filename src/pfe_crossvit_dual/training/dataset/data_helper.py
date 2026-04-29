@@ -1,4 +1,4 @@
-from torch.utils.data import DataLoader, Subset
+from torch.utils.data import DataLoader
 from pfe_crossvit_dual.training.dataset.dual_input_dataset import DualInputDataset
 from pfe_crossvit_dual.training.utils.weight_functions import get_weight_function
 
@@ -6,7 +6,7 @@ from pfe_crossvit_dual.training.utils.weight_functions import get_weight_functio
 def prepare_dataloaders(train_ds, val_ds, batch_size, num_workers):
     prefetch_factor = 2 if num_workers > 0 else None
 
-    if num_workers !=0 and train_ds.precomputed:
+    if num_workers != 0 and train_ds.precomputed:
         print("Dataset using cached data, num workers set to 0")
         num_workers = 0
 
@@ -16,7 +16,7 @@ def prepare_dataloaders(train_ds, val_ds, batch_size, num_workers):
         num_workers=num_workers,
         shuffle=True,
         pin_memory=True,
-        persistent_workers= num_workers != 0,
+        persistent_workers=num_workers != 0,
         prefetch_factor=prefetch_factor,
     )
     v_ld = DataLoader(
@@ -25,7 +25,7 @@ def prepare_dataloaders(train_ds, val_ds, batch_size, num_workers):
         num_workers=num_workers,
         shuffle=False,
         pin_memory=True,
-        persistent_workers= num_workers != 0,
+        persistent_workers=num_workers != 0,
         prefetch_factor=prefetch_factor,
     )
     return t_ld, v_ld
