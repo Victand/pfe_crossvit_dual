@@ -7,11 +7,12 @@ from pathlib import Path
 
 from pfe_crossvit_dual.constants.paths import CONFIG, OUTPUT_DIR
 from pfe_crossvit_dual.training.dataset.data_helper import get_data
-from pfe_crossvit_dual.training.model.model_helper import (
+from pfe_crossvit_dual.training.model.model_loaders import (
     instanciate_dualcrossvit,
     load_training,
 )
 from pfe_crossvit_dual.training.utils.writersAndPlotters import save_training_graphs
+from pfe_crossvit_dual.training.model.crossvit_kwargs import crossvit_kwargs_map
 from pfe_crossvit_dual.training.train import train
 
 
@@ -58,8 +59,9 @@ def training_pipeline(config):
         save_path.mkdir(parents=True, exist_ok=True)
 
     # data
+    img_size = crossvit_kwargs_map[config["model"]["crossvit"]]["img_size"]
     train_loader, val_loader, id_to_label = get_data(
-        img_size=config["model"]["img_size"],
+        img_size=img_size,
         batch_size=config["batch_size"],
         **config["dataset"],
     )
@@ -83,7 +85,7 @@ def training_pipeline(config):
     # training loop
     init_logs(
         save_path,
-        config["model"]["cross_vit"],
+        config["model"]["crossvit"],
         alphas,
         epochs=config["epochs"],
         lr=config["lr"],

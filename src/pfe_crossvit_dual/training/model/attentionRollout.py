@@ -20,7 +20,6 @@ On transforme le vecteur en grille (15x15 si image 240 et patch size 16) puis fa
 
 """
 
-
 import torch
 import torch.nn as nn
 import torchvision.transforms.functional as TF

@@ -29,7 +29,7 @@ class DualInputDataset(Dataset):
         img_paths: list[Path],
         label_to_id: dict[str, int],
         is_train: bool = True,
-        img_size=(240, 240),
+        img_size=(240, 224),
         patch_size=(16, 16),
         weighted_patches=False,
         use_yolo_weights=False,
@@ -45,7 +45,8 @@ class DualInputDataset(Dataset):
         self.label_to_id = label_to_id
         self.cache_dir = Path(CACHE_DIR)
         self.is_train = is_train
-        self.image_size = img_size
+        self.img_size_small = [img_size[0], img_size[0]]
+        self.img_size_large = [img_size[1], img_size[1]]
         self.patch_size = patch_size
 
         # ratio weights
@@ -82,42 +83,62 @@ class DualInputDataset(Dataset):
         # random erase
         self.random_erase = "random_erase" in transforms
 
-        # sptatial transforms
-        spatial_tf = []
-        if "random_crop" in transforms:
-            spatial_tf.append(v2.RandomResizedCrop(self.image_size, scale=(0.85, 1.0)))
-        if "random_hflip" in transforms:
-            spatial_tf.append(v2.RandomHorizontalFlip())
-        self.spatial_tf = v2.Compose(spatial_tf) if spatial_tf else v2.Identity()
-        if "random_affine" in transforms:
-            spatial_tf.append(
-                v2.RandomAffine(
-                    degrees=10,  # type: ignore
-                    translate=(0.05, 0.05),
-                    scale=(0.9, 1.1),
-                    shear=5,
-                )
-            )
+        img_tf = []
+        seg_tf = []
+        patch_tf = []
 
-        # color transforms
-        color_tf = []
-        if "color_jitter" in transforms:
-            color_tf.append(
-                v2.ColorJitter([0.6, 1.4], [0.6, 1.4], [0.6, 1.4], [-0.1, 0.1])
+        normalize = [
+            v2.ToDtype(torch.float32, scale=True),
+            v2.Normalize(mean=mean, std=std),
+        ]
+        # sptatial transforms
+        if "random_crop" in transforms:
+            img_tf.append(v2.RandomResizedCrop(self.img_size_large, scale=(0.85, 1.0)))
+            seg_tf.append(v2.RandomResizedCrop(self.img_size_small, scale=(0.85, 1.0)))
+            patch_tf.append(
+                v2.RandomResizedCrop(self.img_size_small, scale=(0.85, 1.0))
             )
+        if "random_hflip" in transforms:
+            random_hflip = v2.RandomHorizontalFlip()
+            img_tf.append(random_hflip)
+            seg_tf.append(random_hflip)
+            patch_tf.append(random_hflip)
+        if "random_affine" in transforms:
+            random_affine = v2.RandomAffine(
+                degrees=10,  # type: ignore
+                translate=(0.05, 0.05),
+                scale=(0.9, 1.1),
+                shear=5,
+            )
+            img_tf.append(random_affine)
+            seg_tf.append(random_affine)
+            patch_tf.append(random_affine)
+        # color transforms
+        if "color_jitter" in transforms:
+            color_jitter = v2.ColorJitter(
+                [0.6, 1.4], [0.6, 1.4], [0.6, 1.4], [-0.1, 0.1]
+            )
+            img_tf.append(color_jitter)
+            patch_tf.append(color_jitter)
         if "random_grayscale" in transforms:
-            color_tf.append(v2.RandomGrayscale(p=0.1))
+            random_grayscale = v2.RandomGrayscale(p=0.1)
+            img_tf.append(random_grayscale)
+            seg_tf.append(random_grayscale)
+            patch_tf.append(random_grayscale)
         if "gaussian_blur" in transforms:
-            color_tf.append(v2.GaussianBlur(kernel_size=3, sigma=(0.1, 2.0)))
-        self.color_tf = v2.Compose(color_tf) if color_tf else v2.Identity()
+            gaussian_blur = v2.GaussianBlur(kernel_size=3, sigma=(0.1, 2.0))
+            img_tf.append(gaussian_blur)
+            patch_tf.append(gaussian_blur)
+
+        self.train_img_tf = v2.Compose(img_tf + normalize)
+        self.train_seg_tf = v2.Compose(seg_tf + normalize)
+        self.train_patch_tf = v2.Compose(patch_tf + normalize)
+
+        self.val_img_tf = v2.Compose([v2.Resize(self.img_size_large)] + normalize)
+        self.val_seg_tf = v2.Compose([v2.Resize(self.img_size_small)] + normalize)
+        self.val_patch_tf = v2.Compose([v2.Resize(self.img_size_small)] + normalize)
 
         # normalization
-        self.normalize = v2.Compose(
-            [
-                v2.ToDtype(torch.float32, scale=True),
-                v2.Normalize(mean=mean, std=std),
-            ]
-        )
 
     def _precompute_all(self, store_cache=True, num_workers=None):
         """precompute all io tasks and expensive deterministic tasks (ie not random transforms)"""
@@ -142,7 +163,8 @@ class DualInputDataset(Dataset):
                 seg_p,
                 weight_p,
                 label,
-                self.image_size,
+                self.img_size_small,
+                self.img_size_large,
                 self.use_yolo_weights,
                 self._select_patches,
             )
@@ -175,14 +197,13 @@ class DualInputDataset(Dataset):
         img = Image(img)
         img_seg = Image(img_seg)
         if self.is_train:
-            img, img_seg = self.spatial_tf(img, img_seg)
-            img = self.color_tf(img)
+            img = self.train_img_tf(img)
+            img_seg = self.train_seg_tf(img_seg)
             if self.random_erase:
                 img, img_seg = _erase_pair(img, img_seg)
         else:
-            img = TF.resize(img, self.image_size)
-            img_seg = TF.resize(img_seg, self.image_size)
-        img, img_seg = self.normalize(img, img_seg)
+            img = self.val_img_tf(img)
+            img_seg = self.val_seg_tf(img_seg)
 
         # get weight
         weights = (
@@ -213,18 +234,14 @@ class DualInputDataset(Dataset):
         # transforms
         img = Image(img)
         if self.is_train:
-            img = self.spatial_tf(img)
-            patches = torch.stack([self.spatial_tf(p) for p in patches])
-            img = self.color_tf(img)
-            patches = torch.stack([self.color_tf(p) for p in patches])
+            img = self.train_img_tf(img)
+            patches = torch.stack([self.train_patch_tf(p) for p in patches])
             if self.random_erase:
                 img = _erase(img)
                 patches = torch.stack([_erase(p) for p in patches])
         else:
-            img = TF.resize(img, self.image_size)
-            # patches resize to 224 224 already handled in preprocessing
-        img = self.normalize(img)
-        patches = torch.stack([self.normalize(p) for p in patches])
+            img = self.val_img_tf(img)
+            patches = torch.stack([self.val_patch_tf(p) for p in patches])
 
         return patches, img, mask, label
 
@@ -285,7 +302,7 @@ class DualInputDataset(Dataset):
         patches = patches[: self.num_patches]
         if len(patches) < self.num_patches:
             padding = [
-                torch.zeros((3, 224, 224))
+                torch.zeros((3, *self.img_size_small))
                 for _ in range(self.num_patches - len(patches))
             ]
             patches.extend(padding)
@@ -294,16 +311,25 @@ class DualInputDataset(Dataset):
 
 
 def _process_sample(args):
-    img_p, seg_p, weight_p, label, image_size, use_yolo_weights, select_patches = args
+    (
+        img_p,
+        seg_p,
+        weight_p,
+        label,
+        img_size_s,
+        img_size_l,
+        use_yolo_weights,
+        select_patches,
+    ) = args
 
     img = _read_image(img_p)
     img = Image(img)
-    img = TF.resize(img, image_size)
+    img = TF.resize(img, img_size_l)
 
     if not use_yolo_weights:
         seg = _read_image(seg_p)
         seg = Image(seg)
-        seg = TF.resize(seg, image_size)
+        seg = TF.resize(seg, img_size_s)
         return (img, seg, label)
 
     else:
@@ -331,7 +357,7 @@ def _erase(img, p=0.1):
     return img
 
 
-def _erase_pair(img1, img2, p=0.1):
+def _erase_pair(img1, img2, p=0.2):
     if torch.rand(1) < p:
         i, j, h, w, v = v2.RandomErasing.get_params(
             img1, scale=(0.02, 0.33), ratio=(0.3, 3.3), value=None

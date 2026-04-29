@@ -1,7 +1,39 @@
 import torch
-import torch.nn as nn
-from PIL.Image import Image
-import torchvision.transforms.functional as TF
+import sys
+
+from pfe_crossvit_dual.training.model.dual_crossvit_ratio import DualCrossVitRatio
+from pfe_crossvit_dual.training.model.dual_crossvit_yolo import DualCrossVitYolo
+from pfe_crossvit_dual.training.model.crossvit_kwargs import crossvit_kwargs_map
+
+
+def load_training(model_fp: str, model, optimizer):
+    print(f" > Resuming training of model at path: {model_fp}")
+
+    checkpoint = torch.load(model_fp)
+
+    model.load_state_dict(checkpoint["model_state_dict"])
+    optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+    start_epoch = checkpoint["epoch"]
+    best_acc = checkpoint.get("val_acc", 0.0)
+
+    print(f" > Resuming at epoch {start_epoch + 1} with accuracy of {best_acc:.2f}%")
+
+
+def instanciate_dualcrossvit(crossvit, model_name, device, **model_kwargs):
+    crossvit_kwargs = crossvit_kwargs_map[crossvit]
+
+    if model_name == "dual_crossvit_ratio":
+        model = DualCrossVitRatio(**model_kwargs, **crossvit_kwargs)
+    elif model_name == "dual_crossvit_yolo":
+        model = DualCrossVitYolo(**model_kwargs, **crossvit_kwargs)
+    else:
+        print(f"{model_name} is not a valid model")
+        sys.exit(0)
+
+    model = load_crossvit_pretrained_weights(model, crossvit)
+    model.to(device)
+
+    return model
 
 
 def load_crossvit_pretrained_weights(model, model_name="crossvit_15_224", dev=False):
@@ -48,66 +80,3 @@ def load_crossvit_pretrained_weights(model, model_name="crossvit_15_224", dev=Fa
         print(f"Missing keys : {ignored_keys}\n")
 
     return model
-
-
-def load_weights_for_symmetric_crossvit(
-    symmetric_model: nn.Module, pretrained_model_name="crossvit_15_224"
-):
-    """
-    This function loads the weights of a pretrained model of Crossvit into your symmetric model SMALL=LARGE
-    so it can benefit from the pretraining while being a different architecture.
-
-    Args :
-        symmetric_model : should have a symmetric value for patch_size and branches_img_size
-    """
-
-    url = f"https://github.com/IBM/CrossViT/releases/download/weights-0.1/{pretrained_model_name}.pth"
-    checkpoint = torch.hub.load_state_dict_from_url(url, map_location="cpu")
-    state_dict = checkpoint["model"] if "model" in checkpoint else checkpoint
-
-    model_dict = symmetric_model.state_dict()
-    new_state_dict = {}
-
-    for k, v in state_dict.items():
-        if k in model_dict and v.shape == model_dict[k].shape:
-            new_state_dict[k] = v
-
-        # We load the weights of the LARGE branch 'blocks.1' into the the SMALL Branch
-        if "blocks.1" in k:
-            k_sym = k.replace("blocks.1", "blocks.0")
-            if k_sym in model_dict and v.shape == model_dict[k_sym].shape:
-                new_state_dict[k_sym] = v
-
-        elif "patch_embed.1" in k:
-            k_sym = k.replace("patch_embed.1", "patch_embed.0")
-            if k_sym in model_dict and v.shape == model_dict[k_sym].shape:
-                new_state_dict[k_sym] = v
-
-        elif "cls_token.1" in k:
-            pass
-
-
-def get_images_both_branches_as_tensors(
-    img: Image, img_size_small: int, img_size_large: int, device, mean, std
-):
-    """
-    returns both images as tensors ready to be used by the model's forward method.
-    """
-    img_tensor_small = TF.normalize(
-        TF.to_tensor(
-            TF.center_crop(TF.resize(img, int(img_size_small * 1.14)), img_size_small)  # type: ignore
-        ),
-        mean=mean,
-        std=std,
-    )
-    img_tensor_small = img_tensor_small.unsqueeze(0).to(device)
-    img_tensor_large = TF.normalize(
-        TF.to_tensor(
-            TF.center_crop(TF.resize(img, int(img_size_large * 1.14)), img_size_large)  # type: ignore
-        ),
-        mean=mean,
-        std=std,
-    )
-    img_tensor_large = img_tensor_large.unsqueeze(0).to(device)
-
-    return img_tensor_small, img_tensor_large

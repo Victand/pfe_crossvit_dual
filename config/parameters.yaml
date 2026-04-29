@@ -1,25 +1,20 @@
 
 
-preprocessing:
-  clean: True
-  limit: null
-
-
 training:
   resume_path: null
   lr: 0.0001
   epochs: 50
   patience: 10
-  batch_size: 8
+  batch_size: 16
 
   alphas: [1.0, 1.0, 5.0, 1.0, 1.0, 1.0, 0.2] # [leaf, root, stem, flower, fruit, seed, FOND]
 
   dataset: 
-    data_dir: "data/genera"
+    data_dir: "data/thorns"
     transforms: ["random_crop", "random_hflip", "random_grayscale", "color_jitter", "gaussian_blur", "random_affine", "random_erase"] # ["random_crop", "random_hflip", "color_jitter", "random_erase"]
     use_yolo_weights: True
     train_split: 0.8
-    n_samples: null # 'null' for all
+    n_samples: 100 # 'null' for all
     num_workers: 0
     precompute: True # precompute all expensive deterministic io tasks
     precompute_workers: 4
@@ -36,10 +31,5 @@ training:
 
   model:
     model_name: "dual_crossvit_yolo"
-    cross_vit: "crossvit_15_224"
-    img_size: [224, 224] # [240, 224]
-    patch_size: [16, 16]
-    embed_dim: [192, 384]
-    depth: [[1, 5, 0], [1, 5, 0], [1, 5, 0]]
-    num_heads: [6, 6]
-    mlp_ratio: [3.0, 3.0, 1.0]
+    crossvit: "crossvit_15_224"
+    drop_rate: 0.1
