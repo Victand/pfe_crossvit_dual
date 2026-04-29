@@ -19,20 +19,21 @@ training:
     paths: ["original", "segmented"]
     transforms: ["random_crop", "hflip", "color_jitter", "random_erase"]
     n_samples: null
-    num_workers: 2
+    num_workers: 0
+    precompute: True
 
     # when not using yolo weights
     weighted_patches: True
     weight_function: "linear"
 
     # when using yolo weights
-    use_yolo_weights: False
+    use_yolo_weights: True
     num_patches: 16
     patch_quotas: {0: 4, 1: 0, 2: 10, 3: 2}  # (0:leaf, 1:root, 2:stem, 3:flower)
     
 
   model:
-    model_name: "dual_crossvit"
+    model_name: "dual_crossvic"
     cross_vit: "crossvit_15_224"
     img_size: [224, 224] # [240, 224]
     patch_size: [16, 16]

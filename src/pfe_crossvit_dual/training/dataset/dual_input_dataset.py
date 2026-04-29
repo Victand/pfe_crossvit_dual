@@ -12,6 +12,7 @@ from PIL import ImageFile
 from pfe_crossvit_dual.training.utils.weight_functions import linear_
 from pfe_crossvit_dual.constants.paths import DATA_DIR
 from collections import defaultdict
+from tqdm import tqdm
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
@@ -27,12 +28,14 @@ class DualInputDataset(Dataset):
         is_train: bool = True,
         img_size=(240, 240),
         patch_size=(16, 16),
+        n_samples=None,
         classes=("class1", "class2"),
         paths=("original", "segmented"),
         weighted_patches=False,
         use_yolo_weights=False,
         weight_function=linear_,
         transforms=None,
+        precompute=False,
         num_patches=16,
         patch_quotas={0: 2, 1: 0, 2: 12, 3: 2},
     ):
@@ -51,12 +54,17 @@ class DualInputDataset(Dataset):
         self.num_patches = num_patches
         self.patch_quotas = patch_quotas
         # transforms
-        self.build_transforms(transforms if transforms is not None else [])
+        self._build_transforms(transforms if transforms is not None else [])
         # samples
         self.samples = []
-        self.load_samples()
+        self._index_files(n_samples)
+        # precomputing
+        self._cache = []
+        self.precomputed = precompute
+        if precompute:
+            self._precompute_all()
 
-    def build_transforms(self, transforms, mean=IMGNET_MEAN, std=IMGNET_STD):
+    def _build_transforms(self, transforms, mean=IMGNET_MEAN, std=IMGNET_STD):
         # random erase
         self.random_erase = "random_erase" in transforms
 
@@ -84,7 +92,7 @@ class DualInputDataset(Dataset):
             ]
         )
 
-    def load_samples(self):
+    def _index_files(self, n_samples = None):
         phase = "train" if self.is_train else "val"
         for label_int, _class in enumerate(self.classes):
             original_path = self.data_dir / phase / self.paths[0] / _class
@@ -106,6 +114,32 @@ class DualInputDataset(Dataset):
                 self.samples.append(
                     (original_img_p, segmented_img_p, weight_p, label_int)
                 )
+        if n_samples is not None:
+            self.samples = self.samples[:n_samples]
+
+    def _precompute_all(self, in_ram=False):
+        """precompute all io and expensive deterministic tasks (ie not random transforms)"""
+        for img_p, seg_p, weight_p, label in tqdm(self.samples, desc="precomputing dataset"):
+
+            img = read_image(img_p)
+            img = Image(img)
+            img = TF.resize(img, self.image_size)
+
+            if not self.use_yolo_weights:
+                seg = read_image(seg_p)
+                seg = Image(seg)
+                seg = TF.resize(img, self.image_size)
+
+                self._cache.append((img, seg, label))
+
+            else:
+                yolo_weight = torch.load(weight_p)
+                mask = yolo_weight["global_heatmap"].squeeze(0)
+                # get patches
+                yolo_patches = yolo_weight["patches"]
+                patches = self._select_patches(yolo_patches)
+
+                self._cache.append((img, mask, patches, label))
 
     def __len__(self):
         return len(self.samples)
@@ -115,10 +149,12 @@ class DualInputDataset(Dataset):
         Get items with ratio weights
         """
         # get data
-        image_p, seg_image_p, _, label_int = self.samples[idx]
-
-        img = read_image(image_p)
-        img_seg = read_image(seg_image_p)
+        if self.precomputed:
+            img, img_seg, label = self._cache[idx]
+        else:
+            image_p, seg_image_p, _, label = self.samples[idx]
+            img = read_image(image_p)
+            img_seg = read_image(seg_image_p)
 
         # transform
         img, img_seg = self.apply_transforms(img, img_seg, False)
@@ -130,31 +166,14 @@ class DualInputDataset(Dataset):
             else torch.empty(0)
         )
 
-        return img_seg, img, label_int, weights
-
-    def _getitem_yolo_weight(self, idx):
-        """
-        Get items with yolo weights
-        """
-        # get data
-        image_p, _, weight_p, label_int = self.samples[idx]
-
-        img = read_image(image_p)
-        yolo_weight = torch.load(weight_p)
-        mask = yolo_weight["global_heatmap"].squeeze(0)
-
-        print(img.shape)
-        print(mask.shape)
-        # transforms
-        img, mask = self.apply_transforms(img, mask, True)
-
-        # get patches
-        all_patches_data = yolo_weight["patches"]
+        return img_seg, img, label, weights
+    
+    def _select_patches(self, yolo_patches):
         patches = []
 
         # get patches by class
         by_class = defaultdict(list)
-        for p in all_patches_data:
+        for p in yolo_patches:
             by_class[p["class_id"]].append(Image(p["tensor"]))
 
             # fill quotas
@@ -168,16 +187,15 @@ class DualInputDataset(Dataset):
             used_ids = [id(t) for t in patches]
             remains = [
                 Image(p["tensor"])
-                for p in all_patches_data
+                for p in yolo_patches
                 if id(p["tensor"]) not in used_ids
             ]
             random.shuffle(remains)
             patches.extend(remains[: (self.num_patches - len(patches))])
 
             # ensure correct number of patches
-        if len(patches) > self.num_patches:
-            patches = patches[: self.num_patches]
-        elif len(patches) < self.num_patches:
+        patches = patches[: self.num_patches]
+        if len(patches) < self.num_patches:
             padding = [
                 torch.zeros((3, 224, 224))
                 for _ in range(self.num_patches - len(patches))
@@ -188,8 +206,29 @@ class DualInputDataset(Dataset):
         selected_patches = torch.stack(
             [self.normalize(p) if p.max() > 0 else p for p in patches]
         )
+        return selected_patches
 
-        return selected_patches, img, label_int, mask
+    def _getitem_yolo_weight(self, idx):
+        """
+        Get items with yolo weights
+        """
+        # get data
+        if self.precomputed:
+            img, mask, patches, label = self._cache[idx]
+        else:
+            image_p, _, weight_p, label = self.samples[idx]
+
+            img = read_image(image_p)
+            yolo_weight = torch.load(weight_p)
+            mask = yolo_weight["global_heatmap"].squeeze(0)
+            # get patches
+            yolo_patches = yolo_weight["patches"]
+            patches = self._select_patches(yolo_patches)
+
+        # transforms
+        img, mask = self.apply_transforms(img, mask, True)
+
+        return patches, img, label, mask
 
     def __getitem__(self, idx):
         if not self.use_yolo_weights:

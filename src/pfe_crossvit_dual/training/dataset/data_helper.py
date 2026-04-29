@@ -5,13 +5,18 @@ from pfe_crossvit_dual.training.utils.weight_functions import get_weight_functio
 
 def prepare_dataloaders(train_ds, val_ds, batch_size, num_workers):
     prefetch_factor = 2 if num_workers > 0 else None
+
+    if num_workers !=0 and train_ds.precomputed:
+        print("Dataset using cached data, num workers set to 0")
+        num_workers = 0
+
     t_ld = DataLoader(
         train_ds,
         batch_size=batch_size,
         num_workers=num_workers,
         shuffle=True,
         pin_memory=True,
-        persistent_workers=True,
+        persistent_workers= num_workers != 0,
         prefetch_factor=prefetch_factor,
     )
     v_ld = DataLoader(
@@ -20,7 +25,7 @@ def prepare_dataloaders(train_ds, val_ds, batch_size, num_workers):
         num_workers=num_workers,
         shuffle=False,
         pin_memory=True,
-        persistent_workers=True,
+        persistent_workers= num_workers != 0,
         prefetch_factor=prefetch_factor,
     )
     return t_ld, v_ld
@@ -31,7 +36,6 @@ def get_data(
     weight_function="linear",
     batch_size=16,
     num_workers=2,
-    n_samples=None,
     **dataset_kwargs,
 ):
     """Prépare les datasets et les loaders"""
@@ -49,9 +53,5 @@ def get_data(
         weight_function=weight_fn,
         **dataset_kwargs,
     )
-
-    if n_samples:
-        train_ds = Subset(train_ds, range(min(n_samples, len(train_ds))))
-        val_ds = Subset(val_ds, range(min(n_samples, len(val_ds))))
 
     return prepare_dataloaders(train_ds, val_ds, batch_size, num_workers)
