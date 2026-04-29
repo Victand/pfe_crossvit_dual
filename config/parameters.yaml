@@ -22,6 +22,7 @@ training:
     n_samples: null # 'null' for all
     num_workers: 0
     precompute: True # precompute all expensive deterministic io tasks
+    precompute_workers: 4
     store_cache: True # to store precomputed data on disk and use it if exists
 
     # when not using yolo weights

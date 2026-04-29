@@ -11,6 +11,7 @@ import torch.nn.functional as nnTF
 import PIL
 from PIL import ImageFile
 from collections import defaultdict
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from tqdm import tqdm
 
 from pfe_crossvit_dual.training.utils.weight_functions import linear_
@@ -39,6 +40,7 @@ class DualInputDataset(Dataset):
         transforms=None,
         precompute=False,
         store_cache=False,
+        precompute_workers=4,
         num_patches=16,
         patch_quotas={0: 2, 1: 0, 2: 12, 3: 2},
     ):
@@ -66,10 +68,9 @@ class DualInputDataset(Dataset):
             np.random.shuffle(self.samples)
             self.samples = self.samples[:n_samples]
         # precomputing
-        self._cache = []
         self.precomputed = precompute
         if precompute:
-            self._precompute_all(store_cache)
+            self._precompute_all(store_cache, precompute_workers)
 
     def _index_files(self):
         phase = "train" if self.is_train else "val"
@@ -135,7 +136,7 @@ class DualInputDataset(Dataset):
             ]
         )
 
-    def _precompute_all(self, store_cache=True):
+    def _precompute_all(self, store_cache=True, num_workers= None):
         """precompute all io tasks and expensive deterministic tasks (ie not random transforms)"""
         phase = "train" if self.is_train else "val"
         datatype = "yolo" if self.use_yolo_weights else "ratio"
@@ -143,29 +144,28 @@ class DualInputDataset(Dataset):
 
         if store_cache and cache_fp.is_file():
             self._cache = torch.load(cache_fp)
-            print(f"using cached precomputed data at path {cache_fp}")
-            return
-
-        for img_p, seg_p, weight_p, label in tqdm(
-            self.samples, desc="precomputing dataset"
-        ):
-            img = read_image(img_p)
-            img = Image(img)
-            img = TF.resize(img, self.image_size)
-
-            if not self.use_yolo_weights:
-                seg = read_image(seg_p)
-                seg = Image(seg)
-                seg = TF.resize(img, self.image_size)
-
-                self._cache.append((img, seg, label))
+            if len(self._cache) == len(self.samples):
+                print(f"using cached precomputed data at path {cache_fp}")
+                return
             else:
-                yolo_weight = torch.load(weight_p)
-                mask = yolo_weight["global_heatmap"].squeeze(0)
-                yolo_patches = yolo_weight["patches"]
-                patches = self._select_patches(yolo_patches)
+                print(f"cached data invalid (different lengths), continuing...")
+        
+        self._cache = []
 
-                self._cache.append((img, mask, patches, label))
+        tasks = [
+            (img_p, seg_p, weight_p, label,
+            self.image_size,
+            self.use_yolo_weights,
+            self._select_patches)
+            for img_p, seg_p, weight_p, label in self.samples
+        ]
+
+        with ProcessPoolExecutor(max_workers=num_workers) as executor:
+            futures = [executor.submit(_process_sample, t) for t in tasks]
+
+            for f in tqdm(as_completed(futures), total=len(futures), desc="precomputing dataset"):
+                self._cache.append(f.result())
+
 
         if store_cache:
             torch.save(self._cache, cache_fp)
@@ -179,8 +179,8 @@ class DualInputDataset(Dataset):
             img, img_seg, label = self._cache[idx]
         else:
             image_p, seg_image_p, _, label = self.samples[idx]
-            img = read_image(image_p)
-            img_seg = read_image(seg_image_p)
+            img = _read_image(image_p)
+            img_seg = _read_image(seg_image_p)
 
         # transform
         img = Image(img)
@@ -189,7 +189,7 @@ class DualInputDataset(Dataset):
             img, img_seg = self.spatial_tf(img, img_seg)
             img = self.color_tf(img)
             if self.random_erase:
-                img, img_seg = erase_pair(img, img_seg)
+                img, img_seg = _erase_pair(img, img_seg)
         else:
             img = TF.resize(img, self.image_size)
             img_seg = TF.resize(img_seg, self.image_size)
@@ -214,7 +214,7 @@ class DualInputDataset(Dataset):
         else:
             image_p, _, weight_p, label = self.samples[idx]
 
-            img = read_image(image_p)
+            img = _read_image(image_p)
             yolo_weight = torch.load(weight_p)
             mask = yolo_weight["global_heatmap"].squeeze(0)
             # get patches
@@ -229,8 +229,8 @@ class DualInputDataset(Dataset):
             img = self.color_tf(img)
             patches = torch.stack([self.color_tf(p) for p in patches])
             if self.random_erase:
-                img = erase(img)
-                patches = torch.stack([erase(p) for p in patches])
+                img = _erase(img)
+                patches = torch.stack([_erase(p) for p in patches])
         else:
             img = TF.resize(img, self.image_size)
             # patches resize to 224 224 already handled in preprocessing
@@ -302,9 +302,31 @@ class DualInputDataset(Dataset):
             patches.extend(padding)
 
         return torch.stack(patches)
+    
+
+def _process_sample(args):
+    img_p, seg_p, weight_p, label, image_size, use_yolo_weights, select_patches = args
+
+    img = _read_image(img_p)
+    img = Image(img)
+    img = TF.resize(img, image_size)
+
+    if not use_yolo_weights:
+        seg = _read_image(seg_p)
+        seg = Image(seg)
+        seg = TF.resize(seg, image_size)
+        return (img, seg, label)
+
+    else:
+        yolo_weight = torch.load(weight_p)
+        mask = yolo_weight["global_heatmap"].squeeze(0)
+        yolo_patches = yolo_weight["patches"]
+        patches = select_patches(yolo_patches)
+
+        return (img, mask, patches, label)
 
 
-def read_image(path):
+def _read_image(path):
     try:
         return io.read_image(path).float() / 255.0
     except Exception:
@@ -313,14 +335,14 @@ def read_image(path):
         return img
 
 
-def erase(img, p=0.1):
+def _erase(img, p=0.1):
     if torch.rand(1) < p:
         eraser = v2.RandomErasing(scale=(0.02, 0.33), ratio=(0.3, 3.3))
         img = eraser(img)
     return img
 
 
-def erase_pair(img1, img2, p=0.1):
+def _erase_pair(img1, img2, p=0.1):
     if torch.rand(1) < p:
         i, j, h, w, v = v2.RandomErasing.get_params(
             img1, scale=(0.02, 0.33), ratio=(0.3, 3.3), value=None
