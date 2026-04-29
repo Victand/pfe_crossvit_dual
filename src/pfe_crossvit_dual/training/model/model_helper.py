@@ -1,6 +1,8 @@
 import torch
+import sys
 
-from pfe_crossvit_dual.training.model.dual_crossvit import DualCrossVit
+import pfe_crossvit_dual.training.model.dual_crossvit as dual_crossvit
+import pfe_crossvit_dual.training.model.dual_cross_vic as dual_crossvic
 from pfe_crossvit_dual.training.model.model_loaders import (
     load_crossvit_pretrained_weights,
 )
@@ -19,11 +21,18 @@ def load_training(model_fp: str, model, optimizer):
     print(f" > Resuming at epoch {start_epoch + 1} with accuracy of {best_acc:.2f}%")
 
 
-def instanciate_dualcrossvit(cross_vit, device, **model_kwargs):
+def instanciate_dualcrossvit(cross_vit, model_name, device, **model_kwargs):
     if "num_classes" not in model_kwargs:
         model_kwargs["num_classes"] = 2
 
-    model = DualCrossVit(**model_kwargs)
+    if model_name == "dual_crossvit":
+        model = dual_crossvit.DualCrossVit(**model_kwargs)
+    elif model_name == "dual_crossvic":
+        model = dual_crossvic.DualCrossVit(**model_kwargs)
+    else:
+        print(f"{model_name} is not a valid model")
+        sys.exit(0)
+
     model = load_crossvit_pretrained_weights(model, cross_vit)
     model.to(device)
 

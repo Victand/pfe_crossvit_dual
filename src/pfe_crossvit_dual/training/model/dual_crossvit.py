@@ -54,8 +54,8 @@ class MultiScaleBlock(nn.Module):
             if len(tmp) != 0:
                 self.blocks.append(nn.Sequential(*tmp))
 
-        '''if len(self.blocks) == 0:
-            self.blocks = None'''
+        """if len(self.blocks) == 0:
+            self.blocks = None"""
 
         self.projs = nn.ModuleList()
         for d in range(num_branches):
@@ -217,7 +217,7 @@ class DualCrossVit(crossvit.VisionTransformer):
             dpr_ptr += curr_depth
             self.blocks.append(blk)
 
-    def forward_features(self, x_small, x_large, weights): # pyright: ignore[reportIncompatibleMethodOverride]
+    def forward_features(self, x_small, x_large, weights):  # pyright: ignore[reportIncompatibleMethodOverride]
         # [Branch 0 (Small), Branch 1 (Large)]
         xs_inputs = [x_small, x_large]
         B, C, H, W = x_small.shape
@@ -291,7 +291,7 @@ class DualCrossVit(crossvit.VisionTransformer):
         out = [x[:, 0] for x in xs]
         return out
 
-    def forward(self, x_small, x_large, weights=None, alpha=None): # pyright: ignore[reportIncompatibleMethodOverride]
+    def forward(self, x_small, x_large, weights=None, alpha=None):  # pyright: ignore[reportIncompatibleMethodOverride]
         """
         alpha: Tenseur de poids [Fond, Fleur, Feuille, Tige]
         Ex: torch.tensor([0.1, 1.0, 1.0, 5.0])
@@ -312,7 +312,7 @@ class DualCrossVit(crossvit.VisionTransformer):
             weights = None
 
         xs = self.forward_features(x_small, x_large, weights)
-        ce_logits = [self.head[i](x) for i, x in enumerate(xs)] # pyright: ignore[reportIndexIssue]
+        ce_logits = [self.head[i](x) for i, x in enumerate(xs)]  # pyright: ignore[reportIndexIssue]
 
         if "getIndividualLogits" in self.kwargs:
             return ce_logits

@@ -19,7 +19,7 @@ if src_path not in sys.path:
     sys.path.append(src_path)"""
 
 from pfe_crossvit_dual.training.model.dual_cross_vic import DualCrossVit
-from pfe_crossvit_dual.training.dataset.dataset_vic import (
+from pfe_crossvit_dual.training.old.dataset_vic import (
     DualInputDataset,
     prepare_dataloaders,
 )

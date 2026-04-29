@@ -144,7 +144,7 @@ def get_images_both_branches_as_tensors(
     """
     img_tensor_small = TF.normalize(
         TF.to_tensor(
-            TF.center_crop(TF.resize(img, int(img_size_small * 1.14)), img_size_small)
+            TF.center_crop(TF.resize(img, int(img_size_small * 1.14)), img_size_small)  # type: ignore
         ),
         mean=mean,
         std=std,
@@ -152,7 +152,7 @@ def get_images_both_branches_as_tensors(
     img_tensor_small = img_tensor_small.unsqueeze(0).to(device)
     img_tensor_large = TF.normalize(
         TF.to_tensor(
-            TF.center_crop(TF.resize(img, int(img_size_large * 1.14)), img_size_large)
+            TF.center_crop(TF.resize(img, int(img_size_large * 1.14)), img_size_large)  # type: ignore
         ),
         mean=mean,
         std=std,

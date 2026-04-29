@@ -36,7 +36,6 @@ class DualInputDataset(Dataset):
         patch_size=(16, 16),
         classes=("class1", "class2"),
         paths=("original", "segmented"),
-        check_data=False,
         pounderation=False,
         weight_function=linear_,
         use_yolo_weights=False,
@@ -70,14 +69,14 @@ class DualInputDataset(Dataset):
         self.classes_count = {self.classes[0]: 0, self.classes[1]: 0}
         self.load_samples()
 
-        if check_data:
+        """if check_data:
             samples_to_show = find_two_samples(self.samples)
             plot_samples(
                 samples_to_show,
                 classes=self.classes,
                 paths=self.paths,
                 suptitle=f"A sample image for each class --- data_path : {self.data_dir}\nConfiguration : {self.paths}",
-            )
+            )"""
 
     def load_samples(self):
         """

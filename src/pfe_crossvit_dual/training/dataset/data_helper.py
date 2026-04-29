@@ -1,5 +1,5 @@
 from torch.utils.data import DataLoader, Subset
-from pfe_crossvit_dual.training.dataset.dataset_vic import DualInputDataset
+from pfe_crossvit_dual.training.dataset.dual_input_dataset import DualInputDataset
 from pfe_crossvit_dual.training.utils.weight_functions import get_weight_function
 
 
