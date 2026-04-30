@@ -35,6 +35,7 @@ class DualInputDataset(Dataset):
         weight_function=linear_,
         transforms=None,
         precompute=False,
+        use_cache=False,
         store_cache=False,
         num_patches=16,
         patch_quotas={0: 2, 1: 0, 2: 12, 3: 2},
@@ -62,7 +63,7 @@ class DualInputDataset(Dataset):
         # precomputing
         self.precomputed = precompute
         if precompute:
-            self._precompute_all(store_cache)
+            self._precompute_all(use_cache, store_cache)
 
     def _index_files(self, original_img_paths: list[Path]):
         for p in original_img_paths:
@@ -138,20 +139,15 @@ class DualInputDataset(Dataset):
 
         # normalization
 
-    def _precompute_all(self, store_cache=True):
+    def _precompute_all(self, use_cache=True, store_cache=True):
         """precompute all io tasks and expensive deterministic tasks (ie not random transforms)"""
         dataset = self.samples[0][0].parent.parent.parent.name
         phase = "train" if self.is_train else "val"
         datatype = "yolo" if self.use_yolo_weights else "ratio"
         cache_fp = self.cache_dir / f"precomputed_{dataset}_{datatype}_{phase}.pt"
 
-        if store_cache and cache_fp.is_file():
+        if use_cache and cache_fp.is_file():
             self._cache = torch.load(cache_fp)
-            if len(self._cache) == len(self.samples):
-                print(f"using cached precomputed data at path {cache_fp}")
-                return
-            else:
-                print("cached data invalid (different lengths), continuing...")
 
         self._cache = []
 

@@ -17,7 +17,8 @@ training:
     n_samples: null # debug, 'null' for all
     num_workers: 0 # dataloader number of workers
     precompute: True # precompute all expensive deterministic io tasks (/!\ includes selected yolo patches)
-    store_cache: True # to store precomputed data on disk and use it if exists
+    use_cache: True # whether to use saved precomputed data if it exists
+    store_cache: True # to store precomputed data on disk
 
     # when not using yolo weights
     weighted_patches: True # whether patches should be weighted or not
