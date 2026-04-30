@@ -27,7 +27,8 @@ def full_process(data_dir: str, limit=None, clean=False):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "-d", "--data_dir",
+        "-d",
+        "--data_dir",
         type=str,
         help="Path to directory containing directory of original images",
     )

@@ -169,7 +169,9 @@ class DualInputDataset(Dataset):
             for img_p, seg_p, weight_p, label in self.samples
         ]
 
-        self._cache = [_process_sample(args) for args in tqdm(tasks, desc="precomputing dataset")]
+        self._cache = [
+            _process_sample(args) for args in tqdm(tasks, desc="precomputing dataset")
+        ]
         # filter None (from errors)
         self._cache = [d for d in self._cache if d is not None]
 
@@ -315,7 +317,7 @@ def _process_sample(args):
         img_size_l,
         use_yolo_weights,
         select_patches,
-    ) = args  
+    ) = args
     try:
         img = _read_image(img_p)
         img = Image(img)
@@ -332,7 +334,7 @@ def _process_sample(args):
             yolo_patches = yolo_weight["patches"]
             patches = select_patches(yolo_patches)
             return (img, mask, patches, label)
-        
+
     except Exception as e:
         print("error proocessing sampling")
         print(f"error: {e}")
@@ -342,7 +344,7 @@ def _process_sample(args):
 def _read_image(path):
     try:
         return io.read_image(str(path)).float() / 255.0
-    except Exception: # fall back for truncated images
+    except Exception:  # fall back for truncated images
         img = PIL.Image.open(str(path)).convert("RGB")  # type: ignore
         img = TF.to_tensor(img)
         return img
