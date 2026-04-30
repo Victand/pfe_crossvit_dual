@@ -6,7 +6,7 @@ import os
 import argparse
 from pathlib import Path
 
-from pfe_crossvit_dual.constants.paths import CONFIG, OUTPUT_DIR
+from pfe_crossvit_dual.constants.paths import OUTPUT_DIR
 from pfe_crossvit_dual.training.dataset.data_helper import get_data
 from pfe_crossvit_dual.training.model.model_loaders import (
     instanciate_dualcrossvit,
