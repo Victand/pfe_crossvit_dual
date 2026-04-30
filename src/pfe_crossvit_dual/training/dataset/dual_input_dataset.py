@@ -10,7 +10,6 @@ import torch.nn.functional as nnTF
 import PIL
 from PIL import ImageFile
 from collections import defaultdict
-from concurrent.futures import ProcessPoolExecutor, as_completed
 from tqdm import tqdm
 
 from pfe_crossvit_dual.training.utils.weight_functions import linear_
@@ -37,7 +36,6 @@ class DualInputDataset(Dataset):
         transforms=None,
         precompute=False,
         store_cache=False,
-        precompute_workers=4,
         num_patches=16,
         patch_quotas={0: 2, 1: 0, 2: 12, 3: 2},
     ):
@@ -64,7 +62,7 @@ class DualInputDataset(Dataset):
         # precomputing
         self.precomputed = precompute
         if precompute:
-            self._precompute_all(store_cache, precompute_workers)
+            self._precompute_all(store_cache)
 
     def _index_files(self, original_img_paths: list[Path]):
         for p in original_img_paths:
@@ -140,7 +138,7 @@ class DualInputDataset(Dataset):
 
         # normalization
 
-    def _precompute_all(self, store_cache=True, num_workers=None):
+    def _precompute_all(self, store_cache=True):
         """precompute all io tasks and expensive deterministic tasks (ie not random transforms)"""
         dataset = self.samples[0][0].parent.parent.parent.name
         phase = "train" if self.is_train else "val"
@@ -170,13 +168,10 @@ class DualInputDataset(Dataset):
             )
             for img_p, seg_p, weight_p, label in self.samples
         ]
-        with ProcessPoolExecutor(max_workers=num_workers) as executor:
-            futures = [executor.submit(_process_sample, t) for t in tasks]
 
-            for f in tqdm(
-                as_completed(futures), total=len(futures), desc="precomputing dataset"
-            ):
-                self._cache.append(f.result())
+        self._cache = [_process_sample(args) for args in tqdm(tasks, desc="precomputing dataset")]
+        # filter None (from errors)
+        self._cache = [d for d in self._cache if d is not None]
 
         if store_cache:
             torch.save(self._cache, cache_fp)
@@ -307,7 +302,7 @@ class DualInputDataset(Dataset):
             ]
             patches.extend(padding)
 
-        return torch.stack(patches)
+        return patches
 
 
 def _process_sample(args):
@@ -320,32 +315,35 @@ def _process_sample(args):
         img_size_l,
         use_yolo_weights,
         select_patches,
-    ) = args
+    ) = args  
+    try:
+        img = _read_image(img_p)
+        img = Image(img)
+        img = TF.resize(img, img_size_l)
 
-    img = _read_image(img_p)
-    img = Image(img)
-    img = TF.resize(img, img_size_l)
-
-    if not use_yolo_weights:
-        seg = _read_image(seg_p)
-        seg = Image(seg)
-        seg = TF.resize(seg, img_size_s)
-        return (img, seg, label)
-
-    else:
-        yolo_weight = torch.load(weight_p)
-        mask = yolo_weight["global_heatmap"].squeeze(0)
-        yolo_patches = yolo_weight["patches"]
-        patches = select_patches(yolo_patches)
-
-        return (img, mask, patches, label)
+        if not use_yolo_weights:
+            seg = _read_image(seg_p)
+            seg = Image(seg)
+            seg = TF.resize(seg, img_size_s)
+            return (img, seg, label)
+        else:
+            yolo_weight = torch.load(weight_p)
+            mask = yolo_weight["global_heatmap"].squeeze(0)
+            yolo_patches = yolo_weight["patches"]
+            patches = select_patches(yolo_patches)
+            return (img, mask, patches, label)
+        
+    except Exception as e:
+        print("error proocessing sampling")
+        print(f"error: {e}")
+        return None
 
 
 def _read_image(path):
     try:
-        return io.read_image(path).float() / 255.0
-    except Exception:
-        img = PIL.Image.open(path).convert("RGB")  # type: ignore
+        return io.read_image(str(path)).float() / 255.0
+    except Exception: # fall back for truncated images
+        img = PIL.Image.open(str(path)).convert("RGB")  # type: ignore
         img = TF.to_tensor(img)
         return img
 

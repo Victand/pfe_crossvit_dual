@@ -11,8 +11,7 @@ def prepare_dataloaders(train_ds, val_ds, batch_size, num_workers):
     prefetch_factor = 2 if num_workers > 0 else None
 
     if num_workers != 0 and train_ds.precomputed:
-        print("Dataset using cached data, num workers set to 0")
-        num_workers = 0
+        print("Warning: using num_workers>0 with precomputed data, memory expensive")
 
     t_ld = DataLoader(
         train_ds,

@@ -49,6 +49,7 @@ def get_unique_save_path(base_dir="saved", prefix="run"):
 
 def training_pipeline(config):
     """Training Pipeline"""
+    print("\n\n")
     # init dirs
     if config["resume_path"]:
         # Si tu reprends un entraînement, on sauvegarde dans le même dossier que le modèle chargé

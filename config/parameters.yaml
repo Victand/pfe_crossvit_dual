@@ -5,19 +5,18 @@ training:
   lr: 0.0001
   epochs: 50
   patience: 10
-  batch_size: 16
+  batch_size: 8
 
   alphas: [1.0, 1.0, 5.0, 1.0, 1.0, 1.0, 0.2] # [leaf, root, stem, flower, fruit, seed, FOND]
 
   dataset: 
-    data_dir: "data/thorns"
-    transforms: ["random_crop", "random_hflip", "random_grayscale", "color_jitter", "gaussian_blur", "random_affine", "random_erase"] # ["random_crop", "random_hflip", "color_jitter", "random_erase"]
+    data_dir: "data/genera"
+    transforms: ["random_crop", "random_hflip", "random_grayscale", "color_jitter", "random_erase"] #["random_crop", "random_hflip", "random_grayscale", "color_jitter", "gaussian_blur", "random_affine", "random_erase"] # ["random_crop", "random_hflip", "color_jitter", "random_erase"]
     use_yolo_weights: True
     train_split: 0.8
-    n_samples: 100 # 'null' for all
+    n_samples: null # 'null' for all
     num_workers: 0
     precompute: True # precompute all expensive deterministic io tasks
-    precompute_workers: 4
     store_cache: True # to store precomputed data on disk and use it if exists
 
     # when not using yolo weights
