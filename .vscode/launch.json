@@ -31,13 +31,13 @@
             "console": "integratedTerminal",
             "envFile": "${workspaceFolder}/.env",
             "args": [
-                //
+                // directory containing original/ & segmented/
                 "--data_dir",
                 "data/genera",
                 // replace .pt if enabled else skip existing
                 //"--clean",
-                //
-                // "-- limit 100"
+                // debug only
+                //"-- limit 100"
             ]
         },
         {
@@ -46,7 +46,12 @@
             "request": "launch",
             "program": "src/pfe_crossvit_dual/training/training_pipeline.py",
             "console": "integratedTerminal",
-            "envFile": "${workspaceFolder}/.env"
+            "envFile": "${workspaceFolder}/.env",
+            "args": [
+                // path to yaml config
+                "--config",
+                "config/parameters.yaml"
+            ]
         }
     ]
 }

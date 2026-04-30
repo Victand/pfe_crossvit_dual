@@ -3,6 +3,7 @@ import torch
 import torch.optim as optim
 import torch.nn as nn
 import os
+import argparse
 from pathlib import Path
 
 from pfe_crossvit_dual.constants.paths import CONFIG, OUTPUT_DIR
@@ -12,7 +13,7 @@ from pfe_crossvit_dual.training.model.model_loaders import (
     load_training,
 )
 from pfe_crossvit_dual.training.utils.writersAndPlotters import save_training_graphs
-from pfe_crossvit_dual.training.model.crossvit_kwargs import crossvit_kwargs_map
+from pfe_crossvit_dual.training.model.crossvit_kwargs import CROSSVIT_KWARGS_MAP
 from pfe_crossvit_dual.training.train import train
 
 
@@ -60,7 +61,7 @@ def training_pipeline(config):
         save_path.mkdir(parents=True, exist_ok=True)
 
     # data
-    img_size = crossvit_kwargs_map[config["model"]["crossvit"]]["img_size"]
+    img_size = CROSSVIT_KWARGS_MAP[config["model"]["crossvit"]]["img_size"]
     train_loader, val_loader, id_to_label = get_data(
         img_size=img_size,
         batch_size=config["batch_size"],
@@ -94,7 +95,7 @@ def training_pipeline(config):
         patience=config["patience"],
         resume_path=config["resume_path"],
     )
-    history, best_acc = train(
+    history, best_f1 = train(
         model,
         train_loader,
         val_loader,
@@ -112,14 +113,22 @@ def training_pipeline(config):
     save_training_graphs(history, save_path)
     with open(os.path.join(save_path, "training_logs.txt"), "a") as f:
         f.write("=== Entraînement terminé ===\n")
-        f.write(f"Meilleure Accuracy : {best_acc:.2f}%\n")
+        f.write(f"Meilleure F1-score : {best_f1:.2f}%\n")
 
     print(
-        f"\nEntraînement terminé. Meilleure Acc : {best_acc:.2f}%. Les logs et graphiques sont dans {save_path}."
+        f"\nEntraînement terminé. Meilleure Acc : {best_f1:.2f}%. Les logs et graphiques sont dans {save_path}."
     )
 
 
 if __name__ == "__main__":
-    config = yaml.load(open(CONFIG, "r"), Loader=yaml.SafeLoader)
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--config",
+        type=str,
+        help="Path to yaml config",
+    )
+
+    args = parser.parse_args()
+    config = yaml.load(open(args.config, "r"), Loader=yaml.SafeLoader)
 
     training_pipeline(config["training"])

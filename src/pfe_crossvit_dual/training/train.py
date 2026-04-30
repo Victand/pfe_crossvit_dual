@@ -58,7 +58,7 @@ def train(
     log_path = os.path.join(save_path, "training_logs.txt")
 
     start_epoch = 0
-    best_acc = 0.0
+    best_f1 = 0.0
     no_improve = 0
 
     history = {
@@ -141,9 +141,9 @@ def train(
         )
 
         # Sauvegarde du meilleur modèle
-        if val_acc > best_acc:
+        if val_f1 > best_f1:
             no_improve = 0
-            best_acc = val_acc
+            best_f1 = val_f1
             checkpoint = {
                 "epoch": epoch + 1,
                 "model_state_dict": model.state_dict(),
@@ -155,7 +155,7 @@ def train(
             print(" > Nouveau record ! Modèle sauvegardé.")
             with open(log_path, "a") as f:
                 f.write(
-                    f"*** Nouveau meilleur modèle sauvegardé (Acc: {best_acc:.2f}%) ***\n\n"
+                    f"*** Nouveau meilleur modèle sauvegardé (F1-score: {best_f1:.2f}%) ***\n\n"
                 )
 
         else:
@@ -168,4 +168,4 @@ def train(
                     )
                 break
 
-    return history, best_acc
+    return history, best_f1

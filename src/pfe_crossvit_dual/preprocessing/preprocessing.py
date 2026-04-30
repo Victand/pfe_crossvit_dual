@@ -27,12 +27,12 @@ def full_process(data_dir: str, limit=None, clean=False):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--data_dir",
+        "-d", "--data_dir",
         type=str,
         help="Path to directory containing directory of original images",
     )
-    parser.add_argument("--limit", type=int, default=None, help="Limite d'images")
-    parser.add_argument("--clean", action="store_true", help="Nettoyage PT")
+    parser.add_argument("-l", "--limit", type=int, default=None, help="Limite d'images")
+    parser.add_argument("-c", "--clean", action="store_true", help="Nettoyage PT")
 
     args = parser.parse_args()
     full_process(args.data_dir, limit=args.limit, clean=args.clean)

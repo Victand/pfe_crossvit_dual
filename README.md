@@ -3,76 +3,122 @@
 
 Ce projet utilise **uv** pour la gestion des dépendances et du verrouillage des versions (`uv.lock`). Il permet de préparer des données via **YOLOv7** et d'entraîner un modèle **DualCrossViT**.
 
-## 1. Installation
 
-Comme le projet contient un fichier `uv.lock`, utilisez la commande suivante pour synchroniser votre environnement :
+## Installation
+Projet avec **UV**, utilisez la commande:
 
 ```bash
 uv sync
 ```
 
----
+#### Pour lancement local
 
-## 2. Détection et Préparation (`main_detection.py`)
+Variables d'environnement dans [.env](.env), ou manuellement:
 
-Ce script gère le tri des images et la génération des poids de détection. 
-
-**Note :** Si vos dossiers ne sont pas encore créés, la fonction `load_images` peut être appelée au début du script pour répartir les données du JSON vers les dossiers `train` et `val`.
-
-### Lancement avec uv :
+- bash:
 ```bash
-# Traitement complet avec nettoyage
-uv run pretraitement.py --clean
-
-# Test rapide sur une limite d'images
-uv run pretraitement.py --limit 10
-```
-limit de 10 daans chaque sous dossier
----
-
-## 3. Entraînement du Modèle (`train_vit.py`)
-
-Une fois les images triées et les poids générés, ce script lance l'entraînement du Transformer.
-
-### Lancement avec uv :
-```bash
-# Entraînement standard
-uv run train_vic.py --batch 4 --lr 1e-4
-batch de 4 pcq cpu
-# Test rapide sur 100 samples avec visualisation
-uv run train_vic.py --samples 100 --plot --batch 4
+export PYTHONPATH=src:external
 ```
 
-### Arguments disponibles :
+- powershell:
+```powershell
+$env:PYTHONPATH="src;external"
+```
+
+> [!NOTE]
+> Sur VSCode, configurations disponibles dans [`.vscode/launch.json`](.vscode/launch.json). Inclut `.env`.
+
+
+## Pipelines
+
+### Preparation
+
+Copie le dataset (thorns ou genera) dans une arborescence normalisée:
+
+```text
+output_dir/           
+    ├── original/         
+    │   ├── class1/
+    │   ├── class2/
+    │   └── ...
+    └── segmented/        
+        ├── class1/
+        ├── class2/
+        └── ...
+```
+
+#### Lancement
+
+```bash
+uv run src/pfe_crossvit_dual/preparation/preparation.py -d "thorns -i "raw/thorns" -o "data/thorns"
+```
+
 | Argument | Description | Défaut |
 | :--- | :--- | :--- |
-| `-n`, `--samples` | Nombre d'images max à charger | `None` |
-| `-e`, `--epochs` | Nombre d'Epochs | `7` |
-| `-b`, `--batch` | Taille du batch | `32` |
-| `--lr` | Learning rate | `1e-4` |
-| `--plot` | Affiche une heatmap de contrôle avant le départ | `False` |
+| `-d`, `--dataset` | Nom du dataset ("thorns" ou "genera") | `"thorns"` |
+| `-i`, `--input` | Dossier contenant le dataset brut | `-` |
+| `-o`, `--output` | Dossier où copier le dataset propre | `-` |
 
 ---
+### Pretraitement
 
-## Structure des Données
-Le script génère et utilise l'arborescence suivante dans `DATA_DIR` :
-```text
-/created_data/
-├── train/
-│   └── original/
-│       ├── epines/
-│       └── no_epines/
-└── val/
-    └── original/
-        ├── epines/
-        └── no_epines/
+Utilise YOLOv7_ag pour segmenter les images dans les classes suivantes: \
+[leaf, root, stem, flower, fruit, seed, BACKGROUND]
+
+Pour chaque images, enregistre les segmentations ainsi que les patches labélisés au format `.pt`.
+
+#### Lancement
+
+```bash
+uv run src/pfe_crossvit_dual/preprocessing/preprocessing.py -d "data/thorns -c
 ```
 
+| Argument | Description | Défaut |
+| :--- | :--- | :--- |
+| `-d`, `--data_dir` | Dossier contenant le dataset propre | `-` |
+| `-c`, `--clean` (optional) | Overwrite les poids existants, sinon skip | `False` |
+| `-l`, `--limit` (optional) | (Debug only) limite max de fichiers | `None` |
+
 ---
+### Entrainement
 
-## Sauvegarde
-* Le meilleur modèle est sauvegardé sous : `saved/best_model_vit.pth`.
-* L'état final est sauvegardé sous : `saved/final_model_vit.pth`.
+Pipeline d'entrainement du modèle DualCrossViT.
 
-### Note sur la fonction `load_images`
-Si les dossiers de données ne sont pas encore créés ou sont vides, vous pouvez décommenter l'appel à `load_images()` dans le bloc `if __name__ == "__main__":` du script de détection pour forcer la redistribution des images à partir du fichier JSON.
+Tous les paramètres (entrainement, dataset, modèle) sont définis dans `config/parameters.yaml`.
+
+**Modèles**:
+
+- **DualCrossVitYolo**: prends en entrée l'image originale (branche large), des patches d'organe spécifiques produit par YOLOv7_ag, le masque de ségmentation ded la plante.
+
+- **DualCrossVitRatio**: prends en entrée l'image originale (branche large), l'image segmentée (branche small), et les poids par patchs définis par une fonction dépendant du ratio de plante présente sur le patch.
+
+#### Lancement
+
+**Kaggle**
+
+Uploader les datasets prétraités sur kaggle.
+
+Utiliser le notebook suivant: [`notebooks/kaggle_run.ipynb`](notebooks/kaggle_run.ipynb).
+
+Les paramètres d'entrainement sont définis dans le notebook dans un dict. \
+[`notebooks/kaggle_helper.ipynb`](notebooks/kaggle_helper.ipynb) permet de transformer `parameters.yaml` en un dictionnaire pour le copier-coller.
+
+**Local**
+
+```bash
+uv run src/pfe_crossvit_dual/training/training_pipeline.py -c "config/parameters.yaml"
+```
+
+| Argument | Description | Défaut |
+| :--- | :--- | :--- |
+| `-c`, `--config` | Fichier .yaml contenant les parametères | `config/parameters.yaml` |
+
+
+#### Sortie
+
+Les fichiers résultats sont disponibles dans le dossier `output/run_<i>`. \
+Les fichiers sauvegardés sont:
+
+- Le meilleur modèle `best_model_vit.pth`.
+- Les logs d'entrainement `training_logs.txt`
+- Les images de diagnostique d'attention dans `images/`

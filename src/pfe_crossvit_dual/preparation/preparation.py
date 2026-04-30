@@ -42,10 +42,10 @@ def data_preparation_pipeline(dataset, input_dir, output_dir):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--dataset", type=str, help="Dataset type, either 'thorns' or 'genera'."
+        "-d", "--dataset", type=str, default="thorns", help="Dataset type, either 'thorns' or 'genera'."
     )
-    parser.add_argument("--input_dir", type=str, help="Path to dataset")
-    parser.add_argument("--output_dir", type=str, help="Path to output directory")
+    parser.add_argument("-i", "--input_dir", type=str, help="Path to dataset")
+    parser.add_argument("-o", "--output_dir", type=str, help="Path to output directory")
     args = parser.parse_args()
 
     data_preparation_pipeline(args.dataset, args.input_dir, args.output_dir)

@@ -81,7 +81,7 @@ def crossvit_15_dagger_224():
     }
 
 
-crossvit_kwargs_map = {
+CROSSVIT_KWARGS_MAP = {
     "crossvit_tiny_224": crossvit_tiny_224(),
     "crossvit_small_224": crossvit_small_224(),
     "crossvit_base_224": crossvit_base_224(),

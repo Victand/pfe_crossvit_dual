@@ -1,7 +1,7 @@
 
 
 training:
-  resume_path: null
+  resume_path: null # path to previous run, "null" for new run
   lr: 0.0001
   epochs: 50
   patience: 10
@@ -11,24 +11,24 @@ training:
 
   dataset: 
     data_dir: "data/genera"
-    transforms: ["random_crop", "random_hflip", "random_grayscale", "color_jitter", "random_erase"] #["random_crop", "random_hflip", "random_grayscale", "color_jitter", "gaussian_blur", "random_affine", "random_erase"] # ["random_crop", "random_hflip", "color_jitter", "random_erase"]
-    use_yolo_weights: True
+    transforms: ["random_crop", "random_hflip", "random_grayscale", "color_jitter", "random_erase"] #["random_crop", "random_hflip", "random_grayscale", "color_jitter", "gaussian_blur", "random_affine", "random_erase"]
+    use_yolo_weights: True # whether to use yolo weights or ratio weights
     train_split: 0.8
-    n_samples: null # 'null' for all
-    num_workers: 0
-    precompute: True # precompute all expensive deterministic io tasks
+    n_samples: null # debug, 'null' for all
+    num_workers: 0 # dataloader number of workers
+    precompute: True # precompute all expensive deterministic io tasks (/!\ includes selected yolo patches)
     store_cache: True # to store precomputed data on disk and use it if exists
 
     # when not using yolo weights
-    weighted_patches: True
-    weight_function: "linear"
+    weighted_patches: True # whether patches should be weighted or not
+    weight_function: "linear" # function applied to plant ratio to define weight of patch 
 
     # when using yolo weights
-    num_patches: 16
-    patch_quotas: {0: 4, 1: 0, 2: 10, 3: 2, 4: 0, 5: 0, 6: 0}  # [0:leaf, 1:root, 2:stem, 3:flower, 4:fruit, 5:seed, 6:FOND]
+    num_patches: 16 # total number of patches yolov7_ag
+    patch_quotas: {0: 4, 1: 0, 2: 10, 3: 2, 4: 0, 5: 0, 6: 0}  # number of patches per classes yolov7_ag [0:leaf, 1:root, 2:stem, 3:flower, 4:fruit, 5:seed, 6:FOND]
     
 
   model:
-    model_name: "dual_crossvit_yolo"
-    crossvit: "crossvit_15_224"
+    model_name: "dual_crossvit_yolo" # all models in 'model/model_loaders.py' > DUALCROSSVIT_MAP
+    crossvit: "crossvit_15_224" # all crossvit in 'model/crossvit_kwargs.py' > CROSSVIT_KWARGS_MAP
     drop_rate: 0.1

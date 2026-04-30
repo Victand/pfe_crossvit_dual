@@ -3,7 +3,13 @@ import sys
 
 from pfe_crossvit_dual.training.model.dual_crossvit_ratio import DualCrossVitRatio
 from pfe_crossvit_dual.training.model.dual_crossvit_yolo import DualCrossVitYolo
-from pfe_crossvit_dual.training.model.crossvit_kwargs import crossvit_kwargs_map
+from pfe_crossvit_dual.training.model.crossvit_kwargs import CROSSVIT_KWARGS_MAP
+
+
+DUALCROSSVIT_MAP = {
+    "dual_crossvit_ratio": DualCrossVitRatio,
+    "dual_crossvit_yolo": DualCrossVitYolo
+}
 
 
 def load_training(model_fp: str, model, optimizer):
@@ -20,15 +26,9 @@ def load_training(model_fp: str, model, optimizer):
 
 
 def instanciate_dualcrossvit(crossvit, model_name, device, **model_kwargs):
-    crossvit_kwargs = crossvit_kwargs_map[crossvit]
+    crossvit_kwargs = CROSSVIT_KWARGS_MAP[crossvit]
 
-    if model_name == "dual_crossvit_ratio":
-        model = DualCrossVitRatio(**model_kwargs, **crossvit_kwargs)
-    elif model_name == "dual_crossvit_yolo":
-        model = DualCrossVitYolo(**model_kwargs, **crossvit_kwargs)
-    else:
-        print(f"{model_name} is not a valid model")
-        sys.exit(0)
+    model = DUALCROSSVIT_MAP[model_name](**model_kwargs, **crossvit_kwargs)
 
     model = load_crossvit_pretrained_weights(model, crossvit)
     model.to(device)
