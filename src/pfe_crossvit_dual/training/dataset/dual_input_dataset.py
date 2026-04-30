@@ -247,7 +247,7 @@ class DualInputDataset(Dataset):
             return self._getitem_yolo_weight(idx)
 
     def __len__(self):
-        return len(self.samples)
+        return len(self._cache) if self.precomputed else len(self.samples)
 
     def _patches_weights(self, segmented_tensor, patch_size: int, f=linear_):
         mask = (
