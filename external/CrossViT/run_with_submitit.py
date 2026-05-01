@@ -18,15 +18,11 @@ import submitit
 
 def parse_args():
     classification_parser = classification.get_args_parser()
-    parser = argparse.ArgumentParser(
-        "Submitit for CrossViT", parents=[classification_parser]
-    )
+    parser = argparse.ArgumentParser("Submitit for CrossViT", parents=[classification_parser])
     parser.add_argument(
         "--ngpus", default=8, type=int, help="Number of gpus to request on each node"
     )
-    parser.add_argument(
-        "--nodes", default=2, type=int, help="Number of nodes to request"
-    )
+    parser.add_argument("--nodes", default=2, type=int, help="Number of nodes to request")
     parser.add_argument("--timeout", default=360, type=int, help="Duration of the job")
     parser.add_argument(
         "--job_dir", default="", type=str, help="Job dir. Leave empty for automatic."
@@ -35,9 +31,7 @@ def parse_args():
         "--suffix", default="", type=str, help="Job dir. Leave empty for automatic."
     )
 
-    parser.add_argument(
-        "--partition", default="npl", type=str, help="Partition where to submit"
-    )
+    parser.add_argument("--partition", default="npl", type=str, help="Partition where to submit")
     return parser.parse_args()
 
 
@@ -90,9 +84,7 @@ class Trainer(object):
         from pathlib import Path
 
         job_env = submitit.JobEnvironment()
-        self.args.output_dir = Path(
-            str(self.args.output_dir).replace("%j", str(job_env.job_id))
-        )
+        self.args.output_dir = Path(str(self.args.output_dir).replace("%j", str(job_env.job_id)))
         self.args.gpu = job_env.local_rank
         self.args.rank = job_env.global_rank
         self.args.world_size = job_env.num_tasks

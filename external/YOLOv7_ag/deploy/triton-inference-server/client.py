@@ -200,9 +200,7 @@ if __name__ == "__main__":
         inputs = []
         outputs = []
         inputs.append(
-            grpcclient.InferInput(
-                INPUT_NAMES[0], [1, 3, FLAGS.width, FLAGS.height], "FP32"
-            )
+            grpcclient.InferInput(INPUT_NAMES[0], [1, 3, FLAGS.width, FLAGS.height], "FP32")
         )
         inputs[0].set_data_from_numpy(
             np.ones(shape=(1, 3, FLAGS.width, FLAGS.height), dtype=np.float32)
@@ -242,9 +240,7 @@ if __name__ == "__main__":
         inputs = []
         outputs = []
         inputs.append(
-            grpcclient.InferInput(
-                INPUT_NAMES[0], [1, 3, FLAGS.width, FLAGS.height], "FP32"
-            )
+            grpcclient.InferInput(INPUT_NAMES[0], [1, 3, FLAGS.width, FLAGS.height], "FP32")
         )
         outputs.append(grpcclient.InferRequestedOutput(OUTPUT_NAMES[0]))
         outputs.append(grpcclient.InferRequestedOutput(OUTPUT_NAMES[1]))
@@ -339,9 +335,7 @@ if __name__ == "__main__":
         inputs = []
         outputs = []
         inputs.append(
-            grpcclient.InferInput(
-                INPUT_NAMES[0], [1, 3, FLAGS.width, FLAGS.height], "FP32"
-            )
+            grpcclient.InferInput(INPUT_NAMES[0], [1, 3, FLAGS.width, FLAGS.height], "FP32")
         )
         outputs.append(grpcclient.InferRequestedOutput(OUTPUT_NAMES[0]))
         outputs.append(grpcclient.InferRequestedOutput(OUTPUT_NAMES[1]))

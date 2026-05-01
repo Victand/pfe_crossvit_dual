@@ -33,9 +33,7 @@ def validate(model, loader, criterion, alphas, device):
 
     # Calcul des métriques avec scikit-learn
     acc = accuracy_score(all_labels, all_preds) * 100
-    prec = (
-        precision_score(all_labels, all_preds, average="macro", zero_division=0) * 100
-    )
+    prec = precision_score(all_labels, all_preds, average="macro", zero_division=0) * 100
     rec = recall_score(all_labels, all_preds, average="macro", zero_division=0) * 100
     f1 = f1_score(all_labels, all_preds, average="macro", zero_division=0) * 100
 
@@ -56,6 +54,8 @@ def train(
     save_path,
 ):
     log_path = os.path.join(save_path, "training_logs.txt")
+    img_dir = os.path.join(save_path, "images")
+    os.makedirs(img_dir, exist_ok=True)
 
     start_epoch = 0
     best_f1 = 0.0
@@ -110,11 +110,9 @@ def train(
         history["val_f1"].append(val_f1)
 
         # Affichage console
+        print(f"Epoch {epoch + 1} | Train Loss: {avg_train_loss:.4f} | Val Loss: {val_loss:.4f}")
         print(
-            f"Epoch {epoch + 1} | Train Loss: {avg_train_loss:.4f} | Val Loss: {val_loss:.4f}"
-        )
-        print(
-            f"Metrics -> Acc: {val_acc:.2f}% | Prec: {val_prec:.2f}% | Rec: {val_rec:.2f}% | F1: {val_f1:.2f}%\n"
+            f"Metrics -> Acc: {val_acc:.2f}% | Prec: {val_prec:.2f}% | Rec: {val_rec:.2f}% | F1: {val_f1:.2f}%"
         )
 
         # Écriture dans le fichier de log
@@ -127,7 +125,8 @@ def train(
             f.write("-" * 50 + "\n")
 
         # Sauvegarde du diagnostic visuel
-        x_s, x_l, w, lbl = next(iter(val_loader))
+        x_s, x_l, w, lbl = next(iter(train_loader))
+        diagnostic_fp = os.path.join(img_dir, f"diag_epoch_{epoch + 1}.png")
         debug_full_diagnostic(
             x_s.to(device),
             x_l.to(device),
@@ -136,8 +135,7 @@ def train(
             alphas,
             lbl,
             id_to_label,
-            epoch + 1,
-            save_dir=save_path / "images",
+            diagnostic_fp,
         )
 
         # Sauvegarde du meilleur modèle
@@ -152,7 +150,7 @@ def train(
                 "alpha_used": alphas.cpu(),
             }
             torch.save(checkpoint, save_path / "best_model_vit.pth")
-            print(" > Nouveau record ! Modèle sauvegardé.")
+            print(" > Nouveau record ! Modèle sauvegardé.\n")
             with open(log_path, "a") as f:
                 f.write(
                     f"*** Nouveau meilleur modèle sauvegardé (F1-score: {best_f1:.2f}%) ***\n\n"
@@ -160,6 +158,7 @@ def train(
 
         else:
             no_improve += 1
+            print(f"no improvement [{no_improve}/{patience}]")
             if no_improve >= patience:
                 print("early stop")
                 with open(log_path, "a") as f:

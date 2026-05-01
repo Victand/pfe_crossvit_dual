@@ -117,15 +117,11 @@ class DualInputDataset(Dataset):
 
                 segmented_img_p = segmented_path / image
                 if not segmented_img_p.exists():
-                    print(
-                        f"Non detoured image : {image} does not match with any detoured image."
-                    )
+                    print(f"Non detoured image : {image} does not match with any detoured image.")
                     continue
 
                 if self.use_yolo_weights:
-                    weight_p = (
-                        original_img_p.parent / f"{original_img_p.stem}_weights.pt"
-                    )
+                    weight_p = original_img_p.parent / f"{original_img_p.stem}_weights.pt"
                     # Si le fichier .pt n'existe pas, on ignore cette image !
                     if not weight_p.exists():
                         continue
@@ -176,9 +172,7 @@ class DualInputDataset(Dataset):
             weights = torch.empty(0)
         # ----------------------------------------
 
-        original_image, segmented_image = normalize_and_erase(
-            self, original_image, segmented_image
-        )
+        original_image, segmented_image = normalize_and_erase(self, original_image, segmented_image)
 
         # On retourne les poids (YOLO, Segmentation, ou vide) !
         return original_image, segmented_image, label_int, weights
@@ -192,17 +186,10 @@ class DualInputDataset(Dataset):
         # Creates a binary mask from the segmented image
         # if background : Channels = (0,0,0)
         # unfold needs a 4D tensor so we artifially add a Batch dimension with unsqueeze
-        mask = (
-            (torch.sum(segmented_tensor, dim=0) > 0)
-            .float()
-            .unsqueeze(dim=0)
-            .unsqueeze(0)
-        )
+        mask = (torch.sum(segmented_tensor, dim=0) > 0).float().unsqueeze(dim=0).unsqueeze(0)
         # Extracts patches
         # (1,1,H,W) -> (num_pixels, num_patches)
-        patches = nnTF.unfold(mask, kernel_size=patch_size, stride=patch_size).squeeze(
-            0
-        )
+        patches = nnTF.unfold(mask, kernel_size=patch_size, stride=patch_size).squeeze(0)
         # Measures ratios for the image
         ratios = torch.mean(patches, dim=0)
 
@@ -233,9 +220,7 @@ class DualInputDataset(Dataset):
         for tf in active_transforms_list:
             if tf not in self.all_transforms:
                 print(f"{tf} transform name does not exist.")
-                self.active_transforms = {
-                    transform: True for transform in self.all_transforms
-                }
+                self.active_transforms = {transform: True for transform in self.all_transforms}
                 break
             self.active_transforms[tf] = True
 
@@ -307,9 +292,7 @@ class DualInputDataset(Dataset):
 
 
 # Change docstring
-DualInputDataset.__doc__ = DualInputDataset.__doc__.format(
-    all_transforms=ALL_TRANSFORMS
-)
+DualInputDataset.__doc__ = DualInputDataset.__doc__.format(all_transforms=ALL_TRANSFORMS)
 DualInputDataset.set_active_transforms.__doc__ = (
     DualInputDataset.set_active_transforms.__doc__.format(all_transforms=ALL_TRANSFORMS)
 )
@@ -317,9 +300,7 @@ DualInputDataset.set_active_transforms.__doc__ = (
 #####################################################################################
 
 
-def normalize_and_erase(
-    dualdataset: DualInputDataset, img1: torch.Tensor, img2: torch.Tensor
-):
+def normalize_and_erase(dualdataset: DualInputDataset, img1: torch.Tensor, img2: torch.Tensor):
     """
     Applies normalization and random erase if this transformation is accepted byt the instance dataset.
     """

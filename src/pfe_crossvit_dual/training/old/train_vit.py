@@ -76,11 +76,7 @@ def validate(model, loader, criterion):
                 img_seg.to(DEVICE),
                 labels.to(DEVICE),
             )
-            weights = (
-                weights.to(DEVICE).squeeze(1)
-                if weights.dim() == 5
-                else weights.to(DEVICE)
-            )
+            weights = weights.to(DEVICE).squeeze(1) if weights.dim() == 5 else weights.to(DEVICE)
 
             preds = model(img_orig, img_seg, weights=weights, alpha=STRATEGIE_ALPHAS)
             loss = criterion(preds, labels)
@@ -116,11 +112,7 @@ def train(model, train_loader, val_loader, epochs, lr, save_dir="saved"):
                 img_seg.to(DEVICE),
                 labels.to(DEVICE),
             )
-            weights = (
-                weights.to(DEVICE).squeeze(1)
-                if weights.dim() == 5
-                else weights.to(DEVICE)
-            )
+            weights = weights.to(DEVICE).squeeze(1) if weights.dim() == 5 else weights.to(DEVICE)
 
             optimizer.zero_grad()
             preds = model(img_orig, img_seg, weights=weights, alpha=STRATEGIE_ALPHAS)
@@ -146,9 +138,7 @@ def train(model, train_loader, val_loader, epochs, lr, save_dir="saved"):
                 "alpha_used": STRATEGIE_ALPHAS.cpu(),
             }
             torch.save(checkpoint, save_path / "best_model_vit.pth")
-            print(
-                f" > Nouveau record ! Modèle sauvegardé dans {save_path}/best_model_vit.pth"
-            )
+            print(f" > Nouveau record ! Modèle sauvegardé dans {save_path}/best_model_vit.pth")
 
     # Sauvegarde finale (dernier état)
     torch.save(model.state_dict(), save_path / "final_model_vit.pth")
@@ -156,31 +146,23 @@ def train(model, train_loader, val_loader, epochs, lr, save_dir="saved"):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Entraînement DualCrossViT avec guidage YOLO"
-    )
+    parser = argparse.ArgumentParser(description="Entraînement DualCrossViT avec guidage YOLO")
     parser.add_argument(
         "-n", "--samples", type=int, default=None, help="Nombre de samples pour le test"
     )
     parser.add_argument("-e", "--epochs", type=int, default=7, help="Nombre d'Epochs")
     parser.add_argument("-b", "--batch", type=int, default=32, help="Batch size")
     parser.add_argument("--lr", type=float, default=1e-4, help="Learning rate")
-    parser.add_argument(
-        "--plot", action="store_true", help="Afficher la heatmap avant de lancer"
-    )
+    parser.add_argument("--plot", action="store_true", help="Afficher la heatmap avant de lancer")
     args = parser.parse_args()
 
     # Préparation des données
-    ld_train, ld_val = get_data(
-        n_samples=args.samples, batch_size=args.batch, num_workers=6
-    )
+    ld_train, ld_val = get_data(n_samples=args.samples, batch_size=args.batch, num_workers=6)
 
     # Optionnel : Visualisation de contrôle
     if args.plot:
         ds_source = (
-            ld_train.dataset.dataset
-            if isinstance(ld_train.dataset, Subset)
-            else ld_train.dataset
+            ld_train.dataset.dataset if isinstance(ld_train.dataset, Subset) else ld_train.dataset
         )
         samples = find_two_samples(ds_source.samples)
         plot_samples_with_weights(

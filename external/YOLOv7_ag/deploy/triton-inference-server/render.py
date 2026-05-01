@@ -20,15 +20,10 @@ def render_box(img, box, color=(200, 200, 200)):
     """
     x1, y1, x2, y2 = box
     thickness = int(
-        round(
-            (img.shape[0] * img.shape[1])
-            / (_LINE_THICKNESS_SCALING * _LINE_THICKNESS_SCALING)
-        )
+        round((img.shape[0] * img.shape[1]) / (_LINE_THICKNESS_SCALING * _LINE_THICKNESS_SCALING))
     )
     thickness = max(1, thickness)
-    img = cv2.rectangle(
-        img, (int(x1), int(y1)), (int(x2), int(y2)), color, thickness=thickness
-    )
+    img = cv2.rectangle(img, (int(x1), int(y1)), (int(x2), int(y2)), color, thickness=thickness)
     return img
 
 
@@ -41,9 +36,7 @@ def render_filled_box(img, box, color=(200, 200, 200)):
     :return: updated image
     """
     x1, y1, x2, y2 = box
-    img = cv2.rectangle(
-        img, (int(x1), int(y1)), (int(x2), int(y2)), color, thickness=cv2.FILLED
-    )
+    img = cv2.rectangle(img, (int(x1), int(y1)), (int(x2), int(y2)), color, thickness=cv2.FILLED)
     return img
 
 
@@ -60,10 +53,7 @@ def get_text_size(img, text, normalised_scaling=1.0):
     :return: (width, height) - width and height of text box
     """
     thickness = int(
-        round(
-            (img.shape[0] * img.shape[1])
-            / (_TEXT_THICKNESS_SCALING * _TEXT_THICKNESS_SCALING)
-        )
+        round((img.shape[0] * img.shape[1]) / (_TEXT_THICKNESS_SCALING * _TEXT_THICKNESS_SCALING))
         * normalised_scaling
     )
     thickness = max(1, thickness)
@@ -83,10 +73,7 @@ def render_text(img, text, pos, color=(200, 200, 200), normalised_scaling=1.0):
     """
     x, y = pos
     thickness = int(
-        round(
-            (img.shape[0] * img.shape[1])
-            / (_TEXT_THICKNESS_SCALING * _TEXT_THICKNESS_SCALING)
-        )
+        round((img.shape[0] * img.shape[1]) / (_TEXT_THICKNESS_SCALING * _TEXT_THICKNESS_SCALING))
         * normalised_scaling
     )
     thickness = max(1, thickness)

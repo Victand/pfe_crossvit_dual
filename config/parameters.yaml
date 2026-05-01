@@ -7,29 +7,41 @@ training:
   patience: 10
   batch_size: 8
 
-  alphas: [1.0, 1.0, 5.0, 1.0, 1.0, 1.0, 0.2] # [leaf, root, stem, flower, fruit, seed, FOND]
-
-  dataset: 
-    data_dir: "data/genera"
-    transforms: ["random_crop", "random_hflip", "random_grayscale", "color_jitter", "random_erase"] #["random_crop", "random_hflip", "random_grayscale", "color_jitter", "gaussian_blur", "random_affine", "random_erase"]
-    use_yolo_weights: True # whether to use yolo weights or ratio weights
-    train_split: 0.8
-    n_samples: null # debug, 'null' for all
-    num_workers: 0 # dataloader number of workers
-    precompute: True # precompute all expensive deterministic io tasks (/!\ includes selected yolo patches)
-    use_cache: True # whether to use saved precomputed data if it exists
-    store_cache: True # to store precomputed data on disk
-
-    # when not using yolo weights
-    weighted_patches: True # whether patches should be weighted or not
-    weight_function: "linear" # function applied to plant ratio to define weight of patch 
-
-    # when using yolo weights
-    num_patches: 16 # total number of patches yolov7_ag
-    patch_quotas: {0: 4, 1: 0, 2: 10, 3: 2, 4: 0, 5: 0, 6: 0}  # number of patches per classes yolov7_ag [0:leaf, 1:root, 2:stem, 3:flower, 4:fruit, 5:seed, 6:FOND]
-    
+  alphas: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.1] # [leaf, root, stem, flower, fruit, seed, FOND]
 
   model:
     model_name: "dual_crossvit_yolo" # all models in 'model/model_loaders.py' > DUALCROSSVIT_MAP
     crossvit: "crossvit_15_224" # all crossvit in 'model/crossvit_kwargs.py' > CROSSVIT_KWARGS_MAP
     drop_rate: 0.1
+
+  dataset: 
+    # data
+    data_dir: "data/genera"
+    train_split: 0.8
+    n_samples: 20 # debug, 'null' for all
+
+    # model input
+    branch_small: "yolo_patches" # "yolo_patches", "original", "segmented"
+    branch_large: "original" # "original", "segmented"
+    branch_large_weight: "ratio" # "yolo", "ratio", null
+
+    # training transforms
+    transforms: ["random_affine", 
+                 "random_hflip", 
+                 "random_grayscale", 
+                 "color_jitter", 
+                 "random_erase"] #["random_crop", "random_hflip", "random_grayscale", "color_jitter", "gaussian_blur", "random_affine", "random_erase"]
+
+    # when using ratio weights
+    ratio_weight_function: "linear" # function applied to plant ratio to define weight of patch 
+    ratio_patch_size: 16 # size of square patch to compute ratio from
+
+    # when using yolo weights
+    yolo_patch_count: 16 # total number of patches yolov7_ag
+    yolo_patch_quotas: {0: 4, 1: 0, 2: 10, 3: 2, 4: 0, 5: 0, 6: 0}  # number of patches per classes yolov7_ag [0:leaf, 1:root, 2:stem, 3:flower, 4:fruit, 5:seed, 6:FOND]
+    
+    # speed optimizations
+    num_workers: 0 # dataloader number of workers (recommended 0 if precomputed)
+    precompute: True # precompute all expensive deterministic io tasks (/!\ includes selected yolo patches)
+    use_cache: True # whether to use saved precomputed data if it exists
+    store_cache: True # to store precomputed data on disk

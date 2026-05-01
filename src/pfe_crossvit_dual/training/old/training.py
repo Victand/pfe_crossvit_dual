@@ -56,9 +56,7 @@ def dual_eval(
             logits = model(original_image, segmented_image, weights)
 
             if plot_pounderation and (weights.numel() != 0) and batch_id == 0:
-                plot_weight_example(
-                    segmented_image, weights, num_examples=1, patch_size=patch_size
-                )
+                plot_weight_example(segmented_image, weights, num_examples=1, patch_size=patch_size)
 
             val_loss = loss_fn(logits, label_gt)
             total_val_loss += val_loss.item()
@@ -283,9 +281,7 @@ def train(
                 ckpt_path,
             )
 
-            write_in_logs(
-                log_file, message=f"\n[Info] Emergency checkpoint saved : {ckpt_path}"
-            )
+            write_in_logs(log_file, message=f"\n[Info] Emergency checkpoint saved : {ckpt_path}")
 
     finally:
         total_time = time.time() - start_time

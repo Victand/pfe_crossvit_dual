@@ -35,9 +35,7 @@ _model_urls = {
 class PatchEmbed(nn.Module):
     """Image to Patch Embedding"""
 
-    def __init__(
-        self, img_size=224, patch_size=16, in_chans=3, embed_dim=768, multi_conv=False
-    ):
+    def __init__(self, img_size=224, patch_size=16, in_chans=3, embed_dim=768, multi_conv=False):
         super().__init__()
         img_size = to_2tuple(img_size)
         patch_size = to_2tuple(patch_size)
@@ -48,9 +46,7 @@ class PatchEmbed(nn.Module):
         if multi_conv:
             if patch_size[0] == 12:
                 self.proj = nn.Sequential(
-                    nn.Conv2d(
-                        in_chans, embed_dim // 4, kernel_size=7, stride=4, padding=3
-                    ),
+                    nn.Conv2d(in_chans, embed_dim // 4, kernel_size=7, stride=4, padding=3),
                     nn.ReLU(inplace=True),
                     nn.Conv2d(
                         embed_dim // 4,
@@ -60,15 +56,11 @@ class PatchEmbed(nn.Module):
                         padding=0,
                     ),
                     nn.ReLU(inplace=True),
-                    nn.Conv2d(
-                        embed_dim // 2, embed_dim, kernel_size=3, stride=1, padding=1
-                    ),
+                    nn.Conv2d(embed_dim // 2, embed_dim, kernel_size=3, stride=1, padding=1),
                 )
             elif patch_size[0] == 16:
                 self.proj = nn.Sequential(
-                    nn.Conv2d(
-                        in_chans, embed_dim // 4, kernel_size=7, stride=4, padding=3
-                    ),
+                    nn.Conv2d(in_chans, embed_dim // 4, kernel_size=7, stride=4, padding=3),
                     nn.ReLU(inplace=True),
                     nn.Conv2d(
                         embed_dim // 4,
@@ -78,14 +70,10 @@ class PatchEmbed(nn.Module):
                         padding=1,
                     ),
                     nn.ReLU(inplace=True),
-                    nn.Conv2d(
-                        embed_dim // 2, embed_dim, kernel_size=3, stride=2, padding=1
-                    ),
+                    nn.Conv2d(embed_dim // 2, embed_dim, kernel_size=3, stride=2, padding=1),
                 )
         else:
-            self.proj = nn.Conv2d(
-                in_chans, embed_dim, kernel_size=patch_size, stride=patch_size
-            )
+            self.proj = nn.Conv2d(in_chans, embed_dim, kernel_size=patch_size, stride=patch_size)
 
     def forward(self, x):
         B, C, H, W = x.shape
@@ -129,14 +117,10 @@ class CrossAttention(nn.Module):
             .permute(0, 2, 1, 3)
         )  # B1C -> B1H(C/H) -> BH1(C/H)
         k = (
-            self.wk(x)
-            .reshape(B, N, self.num_heads, C // self.num_heads)
-            .permute(0, 2, 1, 3)
+            self.wk(x).reshape(B, N, self.num_heads, C // self.num_heads).permute(0, 2, 1, 3)
         )  # BNC -> BNH(C/H) -> BHN(C/H)
         v = (
-            self.wv(x)
-            .reshape(B, N, self.num_heads, C // self.num_heads)
-            .permute(0, 2, 1, 3)
+            self.wv(x).reshape(B, N, self.num_heads, C // self.num_heads).permute(0, 2, 1, 3)
         )  # BNC -> BNH(C/H) -> BHN(C/H)
 
         attn = (q @ k.transpose(-2, -1)) * self.scale  # BH1(C/H) @ BH(C/H)N -> BH1N
@@ -412,10 +396,7 @@ class VisionTransformer(nn.Module):
 
         # cls_token : aggregate important informations from every patches without affecting their local role
         self.cls_token = nn.ParameterList(
-            [
-                nn.Parameter(torch.zeros(1, 1, embed_dim[i]))
-                for i in range(self.num_branches)
-            ]
+            [nn.Parameter(torch.zeros(1, 1, embed_dim[i])) for i in range(self.num_branches)]
         )
 
         self.pos_drop = nn.Dropout(p=drop_rate)
@@ -445,14 +426,10 @@ class VisionTransformer(nn.Module):
             dpr_ptr += curr_depth
             self.blocks.append(blk)
 
-        self.norm = nn.ModuleList(
-            [norm_layer(embed_dim[i]) for i in range(self.num_branches)]
-        )
+        self.norm = nn.ModuleList([norm_layer(embed_dim[i]) for i in range(self.num_branches)])
         self.head = nn.ModuleList(
             [
-                nn.Linear(embed_dim[i], num_classes)
-                if num_classes > 0
-                else nn.Identity()
+                nn.Linear(embed_dim[i], num_classes) if num_classes > 0 else nn.Identity()
                 for i in range(self.num_branches)
             ]
         )
@@ -485,9 +462,7 @@ class VisionTransformer(nn.Module):
 
     def reset_classifier(self, num_classes, global_pool=""):
         self.num_classes = num_classes
-        self.head = (
-            nn.Linear(self.embed_dim, num_classes) if num_classes > 0 else nn.Identity()
-        )
+        self.head = nn.Linear(self.embed_dim, num_classes) if num_classes > 0 else nn.Identity()
 
     def forward_features(self, x):
         B, C, H, W = x.shape

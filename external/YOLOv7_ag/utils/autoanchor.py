@@ -24,9 +24,7 @@ def check_anchors(dataset, model, thr=4.0, imgsz=640):
     # Check anchor fit to data, recompute if necessary
     prefix = colorstr("autoanchor: ")
     print(f"\n{prefix}Analyzing anchors... ", end="")
-    m = (
-        model.module.model[-1] if hasattr(model, "module") else model.model[-1]
-    )  # Detect()
+    m = model.module.model[-1] if hasattr(model, "module") else model.model[-1]  # Detect()
     shapes = imgsz * dataset.shapes / dataset.shapes.max(1, keepdims=True)
     scale = np.random.uniform(0.9, 1.1, size=(shapes.shape[0], 1))  # augment scale
     wh = torch.tensor(
@@ -48,9 +46,7 @@ def check_anchors(dataset, model, thr=4.0, imgsz=640):
         print(". Attempting to improve anchors, please wait...")
         na = m.anchor_grid.numel() // 2  # number of anchors
         try:
-            anchors = kmean_anchors(
-                dataset, n=na, img_size=imgsz, thr=thr, gen=1000, verbose=False
-            )
+            anchors = kmean_anchors(dataset, n=na, img_size=imgsz, thr=thr, gen=1000, verbose=False)
         except Exception as e:
             print(f"{prefix}ERROR: {e}")
         new_bpr = metric(anchors)[0]
@@ -58,9 +54,9 @@ def check_anchors(dataset, model, thr=4.0, imgsz=640):
             anchors = torch.tensor(anchors, device=m.anchors.device).type_as(m.anchors)
             m.anchor_grid[:] = anchors.clone().view_as(m.anchor_grid)  # for inference
             check_anchor_order(m)
-            m.anchors[:] = anchors.clone().view_as(m.anchors) / m.stride.to(
-                m.anchors.device
-            ).view(-1, 1, 1)  # loss
+            m.anchors[:] = anchors.clone().view_as(m.anchors) / m.stride.to(m.anchors.device).view(
+                -1, 1, 1
+            )  # loss
             print(
                 f"{prefix}New anchors saved to model. Update model *.yaml to use these anchors in the future."
             )
@@ -71,9 +67,7 @@ def check_anchors(dataset, model, thr=4.0, imgsz=640):
     print("")  # newline
 
 
-def kmean_anchors(
-    path="./data/coco.yaml", n=9, img_size=640, thr=4.0, gen=1000, verbose=True
-):
+def kmean_anchors(path="./data/coco.yaml", n=9, img_size=640, thr=4.0, gen=1000, verbose=True):
     """Creates kmeans-evolved anchors from training dataset
 
     Arguments:
@@ -110,9 +104,7 @@ def kmean_anchors(
             (best > thr).float().mean(),
             (x > thr).float().mean() * n,
         )  # best possible recall, anch > thr
-        print(
-            f"{prefix}thr={thr:.2f}: {bpr:.4f} best possible recall, {aat:.2f} anchors past thr"
-        )
+        print(f"{prefix}thr={thr:.2f}: {bpr:.4f} best possible recall, {aat:.2f} anchors past thr")
         print(
             f"{prefix}n={n}, img_size={img_size}, metric_all={x.mean():.3f}/{best.mean():.3f}-mean/best, "
             f"past_thr={x[x > thr].mean():.3f}-mean: ",
@@ -185,16 +177,12 @@ def kmean_anchors(
     for _ in pbar:
         v = np.ones(sh)
         while (v == 1).all():  # mutate until a change occurs (prevent duplicates)
-            v = ((npr.random(sh) < mp) * npr.random() * npr.randn(*sh) * s + 1).clip(
-                0.3, 3.0
-            )
+            v = ((npr.random(sh) < mp) * npr.random() * npr.randn(*sh) * s + 1).clip(0.3, 3.0)
         kg = (k.copy() * v).clip(min=2.0)
         fg = anchor_fitness(kg)
         if fg > f:
             f, k = fg, kg.copy()
-            pbar.desc = (
-                f"{prefix}Evolving anchors with Genetic Algorithm: fitness = {f:.4f}"
-            )
+            pbar.desc = f"{prefix}Evolving anchors with Genetic Algorithm: fitness = {f:.4f}"
             if verbose:
                 print_results(k)
 

@@ -85,9 +85,7 @@ def test(
             model = TracedModel(model, device, imgsz)
 
     # Half
-    half = (
-        device.type != "cpu" and half_precision
-    )  # half precision only supported on CUDA
+    half = device.type != "cpu" and half_precision  # half precision only supported on CUDA
     if half:
         model.half()
 
@@ -110,9 +108,7 @@ def test(
     if not training:
         if device.type != "cpu":
             model(
-                torch.zeros(1, 3, imgsz, imgsz)
-                .to(device)
-                .type_as(next(model.parameters()))
+                torch.zeros(1, 3, imgsz, imgsz).to(device).type_as(next(model.parameters()))
             )  # run once
         task = (
             opt.task if opt.task in ("train", "val", "test") else "val"
@@ -134,10 +130,7 @@ def test(
     seen = 0
     confusion_matrix = ConfusionMatrix(nc=nc)
     names = {
-        k: v
-        for k, v in enumerate(
-            model.names if hasattr(model, "names") else model.module.names
-        )
+        k: v for k, v in enumerate(model.names if hasattr(model, "names") else model.module.names)
     }
     coco91class = coco80_to_coco91_class()
     s = ("%20s" + "%12s" * 6) % (
@@ -162,9 +155,7 @@ def test(
         with torch.no_grad():
             # Run model
             t = time_synchronized()
-            out, train_out = model(
-                img, augment=augment
-            )  # inference and training outputs
+            out, train_out = model(img, augment=augment)  # inference and training outputs
             t0 += time_synchronized() - t
 
             # Compute loss
@@ -174,13 +165,9 @@ def test(
                 ]  # box, obj, cls
 
             # Run NMS
-            targets[:, 2:] *= torch.Tensor([width, height, width, height]).to(
-                device
-            )  # to pixels
+            targets[:, 2:] *= torch.Tensor([width, height, width, height]).to(device)  # to pixels
             lb = (
-                [targets[targets[:, 0] == i, 1:] for i in range(nb)]
-                if save_hybrid
-                else []
+                [targets[targets[:, 0] == i, 1:] for i in range(nb)] if save_hybrid else []
             )  # for autolabelling
             t = time_synchronized()
             out = non_max_suppression(
@@ -220,18 +207,12 @@ def test(
 
             # Append to text file
             if save_txt:
-                gn = torch.tensor(shapes[si][0])[
-                    [1, 0, 1, 0]
-                ]  # normalization gain whwh
+                gn = torch.tensor(shapes[si][0])[[1, 0, 1, 0]]  # normalization gain whwh
                 for *xyxy, conf, cls in predn.tolist():
                     xywh = (
-                        (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn)
-                        .view(-1)
-                        .tolist()
+                        (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()
                     )  # normalized xywh
-                    line = (
-                        (cls, *xywh, conf) if save_conf else (cls, *xywh)
-                    )  # label format
+                    line = (cls, *xywh, conf) if save_conf else (cls, *xywh)  # label format
                     with open(save_dir / "labels" / (path.stem + ".txt"), "a") as f:
                         f.write(("%g " * len(line)).rstrip() % line + "\n")
 
@@ -259,9 +240,7 @@ def test(
                         "predictions": {"box_data": box_data, "class_labels": names}
                     }  # inference-space
                     wandb_images.append(
-                        wandb_logger.wandb.Image(
-                            img[si], boxes=boxes, caption=path.name
-                        )
+                        wandb_logger.wandb.Image(img[si], boxes=boxes, caption=path.name)
                     )
             wandb_logger.log_training_progress(
                 predn, path, names
@@ -277,9 +256,7 @@ def test(
                     jdict.append(
                         {
                             "image_id": image_id,
-                            "category_id": coco91class[int(p[5])]
-                            if is_coco
-                            else int(p[5]),
+                            "category_id": coco91class[int(p[5])] if is_coco else int(p[5]),
                             "bbox": [round(x, 3) for x in b],
                             "score": round(p[4], 5),
                         }
@@ -297,25 +274,17 @@ def test(
                     img[si].shape[1:], tbox, shapes[si][0], shapes[si][1]
                 )  # native-space labels
                 if plots:
-                    confusion_matrix.process_batch(
-                        predn, torch.cat((labels[:, 0:1], tbox), 1)
-                    )
+                    confusion_matrix.process_batch(predn, torch.cat((labels[:, 0:1], tbox), 1))
 
                 # Per target class
                 for cls in torch.unique(tcls_tensor):
-                    ti = (
-                        (cls == tcls_tensor).nonzero(as_tuple=False).view(-1)
-                    )  # prediction indices
-                    pi = (
-                        (cls == pred[:, 5]).nonzero(as_tuple=False).view(-1)
-                    )  # target indices
+                    ti = (cls == tcls_tensor).nonzero(as_tuple=False).view(-1)  # prediction indices
+                    pi = (cls == pred[:, 5]).nonzero(as_tuple=False).view(-1)  # target indices
 
                     # Search for detections
                     if pi.shape[0]:
                         # Prediction to target ious
-                        ious, i = box_iou(predn[pi, :4], tbox[ti]).max(
-                            1
-                        )  # best ious, indices
+                        ious, i = box_iou(predn[pi, :4], tbox[ti]).max(1)  # best ious, indices
 
                         # Append detections
                         detected_set = set()
@@ -325,9 +294,7 @@ def test(
                                 detected_set.add(d.item())
                                 detected.append(d)
                                 correct[pi[j]] = ious[j] > iouv  # iou_thres is 1xn
-                                if (
-                                    len(detected) == nl
-                                ):  # all targets already located in image
+                                if len(detected) == nl:  # all targets already located in image
                                     break
 
             # Append statistics (correct, conf, pcls, tcls)
@@ -336,9 +303,7 @@ def test(
         # Plot images
         if plots and batch_i < 3:
             f = save_dir / f"test_batch{batch_i}_labels.jpg"  # labels
-            Thread(
-                target=plot_images, args=(img, targets, paths, f, names), daemon=True
-            ).start()
+            Thread(target=plot_images, args=(img, targets, paths, f, names), daemon=True).start()
             f = save_dir / f"test_batch{batch_i}_pred.jpg"  # predictions
             Thread(
                 target=plot_images,
@@ -354,9 +319,7 @@ def test(
         )
         ap50, ap = ap[:, 0], ap.mean(1)  # AP@0.5, AP@0.5:0.95
         mp, mr, map50, map = p.mean(), r.mean(), ap50.mean(), ap.mean()
-        nt = np.bincount(
-            stats[3].astype(np.int64), minlength=nc
-        )  # number of targets per class
+        nt = np.bincount(stats[3].astype(np.int64), minlength=nc)  # number of targets per class
     else:
         nt = torch.zeros(1)
 
@@ -376,10 +339,7 @@ def test(
         batch_size,
     )  # tuple
     if not training:
-        print(
-            "Speed: %.1f/%.1f/%.1f ms inference/NMS/total per %gx%g image at batch-size %g"
-            % t
-        )
+        print("Speed: %.1f/%.1f/%.1f ms inference/NMS/total per %gx%g image at batch-size %g" % t)
 
     # Plots
     if plots:
@@ -444,30 +404,16 @@ if __name__ == "__main__":
     parser.add_argument(
         "--weights", nargs="+", type=str, default="yolov7.pt", help="model.pt path(s)"
     )
-    parser.add_argument(
-        "--data", type=str, default="data/coco.yaml", help="*.data path"
-    )
-    parser.add_argument(
-        "--batch-size", type=int, default=32, help="size of each image batch"
-    )
-    parser.add_argument(
-        "--img-size", type=int, default=640, help="inference size (pixels)"
-    )
+    parser.add_argument("--data", type=str, default="data/coco.yaml", help="*.data path")
+    parser.add_argument("--batch-size", type=int, default=32, help="size of each image batch")
+    parser.add_argument("--img-size", type=int, default=640, help="inference size (pixels)")
     parser.add_argument(
         "--conf-thres", type=float, default=0.001, help="object confidence threshold"
     )
-    parser.add_argument(
-        "--iou-thres", type=float, default=0.65, help="IOU threshold for NMS"
-    )
-    parser.add_argument(
-        "--task", default="val", help="train, val, test, speed or study"
-    )
-    parser.add_argument(
-        "--device", default="", help="cuda device, i.e. 0 or 0,1,2,3 or cpu"
-    )
-    parser.add_argument(
-        "--single-cls", action="store_true", help="treat as single-class dataset"
-    )
+    parser.add_argument("--iou-thres", type=float, default=0.65, help="IOU threshold for NMS")
+    parser.add_argument("--task", default="val", help="train, val, test, speed or study")
+    parser.add_argument("--device", default="", help="cuda device, i.e. 0 or 0,1,2,3 or cpu")
+    parser.add_argument("--single-cls", action="store_true", help="treat as single-class dataset")
     parser.add_argument("--augment", action="store_true", help="augmented inference")
     parser.add_argument("--verbose", action="store_true", help="report mAP by class")
     parser.add_argument("--save-txt", action="store_true", help="save results to *.txt")

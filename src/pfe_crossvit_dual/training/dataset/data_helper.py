@@ -35,7 +35,7 @@ def prepare_dataloaders(train_ds, val_ds, batch_size, num_workers):
 
 def get_data(
     data_dir,
-    weight_function="linear",
+    ratio_weight_function="linear",
     batch_size=16,
     num_workers=2,
     train_split=0.8,
@@ -44,7 +44,7 @@ def get_data(
     **dataset_kwargs,
 ):
     """Prépare les datasets et les loaders"""
-    weight_fn = get_weight_function(weight_function)
+    weight_fn = get_weight_function(ratio_weight_function)
 
     original_dir = Path(data_dir) / "original"
     img_paths = list(original_dir.rglob("*.jpg"))
@@ -67,14 +67,14 @@ def get_data(
         label_to_id=label_to_id,
         img_paths=train_img_paths,
         is_train=True,
-        weight_function=weight_fn,
+        ratio_weight_function=weight_fn,
         **dataset_kwargs,
     )
     val_ds = DualInputDataset(
         label_to_id=label_to_id,
         img_paths=val_img_paths,
         is_train=False,
-        weight_function=weight_fn,
+        ratio_weight_function=weight_fn,
         **dataset_kwargs,
     )
 

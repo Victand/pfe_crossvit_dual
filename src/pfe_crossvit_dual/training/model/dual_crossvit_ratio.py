@@ -90,10 +90,7 @@ class DualCrossVitRatio(crossvit.VisionTransformer):
             expected_size = self.img_size[i]
 
             # Interpolation de l'image si besoin
-            if (
-                current_img.shape[-2] != expected_size
-                or current_img.shape[-1] != expected_size
-            ):
+            if current_img.shape[-2] != expected_size or current_img.shape[-1] != expected_size:
                 x_ = torch.nn.functional.interpolate(
                     current_img,
                     size=(expected_size, expected_size),
@@ -138,9 +135,7 @@ class DualCrossVitRatio(crossvit.VisionTransformer):
                     mode="linear",
                     align_corners=False,
                 )
-                pos_embed = torch.cat(
-                    (pos_embed_cls, pos_embed_patches.transpose(1, 2)), dim=1
-                )
+                pos_embed = torch.cat((pos_embed_cls, pos_embed_patches.transpose(1, 2)), dim=1)
 
             tmp = tmp + pos_embed
             tmp = self.pos_drop(tmp)
@@ -158,20 +153,9 @@ class DualCrossVitRatio(crossvit.VisionTransformer):
         alpha: Tenseur de poids [Fond, Fleur, Feuille, Tige]
         Ex: torch.tensor([0.1, 1.0, 1.0, 5.0])
         """
-        # Si on a des poids multi-canaux (B, 4, 14, 14), on les mixe
-        if weights is not None and weights.numel() > 0:
-            if weights.dim() == 4:  # Format (B, 4, 14, 14)
-                if alpha is None:
-                    # Stratégie par défaut si on oublie alpha
-                    alpha = torch.tensor([0.1, 1.0, 1.0, 1.0]).to(weights.device)
 
-                # Mixage des canaux : somme pondérée
-                # On multiplie chaque canal (Fleur, Tige...) par son importance alpha
-                weights = (weights * alpha.view(1, -1, 1, 1)).sum(dim=1)
-                # On aplatit pour le ViT : (B, 196, 1)
-                weights = weights.view(weights.shape[0], -1, 1)
-        else:
-            weights = None
+        if weights is not None:
+            weights = weights.view(weights.shape[0], -1, 1)
 
         xs = self.forward_features(x_small, x_large, weights)
         ce_logits = [self.head[i](x) for i, x in enumerate(xs)]  # pyright: ignore[reportIndexIssue]

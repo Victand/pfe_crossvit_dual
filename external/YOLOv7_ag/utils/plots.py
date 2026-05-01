@@ -94,9 +94,7 @@ def plot_one_box_PIL(box, img, color=None, label=None, line_thickness=None):
             [box[0], box[1] - txt_height + 4, box[0] + txt_width, box[1]],
             fill=tuple(color),
         )
-        draw.text(
-            (box[0], box[1] - txt_height + 1), label, fill=(255, 255, 255), font=font
-        )
+        draw.text((box[0], box[1] - txt_height + 1), label, fill=(255, 255, 255), font=font)
     return np.asarray(img)
 
 
@@ -198,9 +196,7 @@ def plot_images(
                 cls = names[cls] if names else cls
                 if labels or conf[j] > 0.25:  # 0.25 conf thresh
                     label = "%s" % cls if labels else "%s %.1f" % (cls, conf[j])
-                    plot_one_box(
-                        box, mosaic, label=label, color=color, line_thickness=tl
-                    )
+                    plot_one_box(box, mosaic, label=label, color=color, line_thickness=tl)
 
         # Draw image filename labels
         if paths:
@@ -374,9 +370,7 @@ def plot_labels(labels, names=(), save_dir=Path(""), loggers=None):
     labels[:, 1:] = xywh2xyxy(labels[:, 1:]) * 2000
     img = Image.fromarray(np.ones((2000, 2000, 3), dtype=np.uint8) * 255)
     for cls, *box in labels[:1000]:
-        ImageDraw.Draw(img).rectangle(
-            box, width=1, outline=colors[int(cls) % 10]
-        )  # plot
+        ImageDraw.Draw(img).rectangle(box, width=1, outline=colors[int(cls) % 10])  # plot
     ax[1].imshow(img)
     ax[1].axis("off")
 
@@ -394,8 +388,7 @@ def plot_labels(labels, names=(), save_dir=Path(""), loggers=None):
             v.log(
                 {
                     "Labels": [
-                        v.Image(str(x), caption=x.name)
-                        for x in save_dir.glob("*labels*.jpg")
+                        v.Image(str(x), caption=x.name) for x in save_dir.glob("*labels*.jpg")
                     ]
                 },
                 commit=False,
@@ -418,9 +411,7 @@ def plot_evolution(
         # mu = (y * weights).sum() / weights.sum()  # best weighted result
         mu = y[f.argmax()]  # best single result
         plt.subplot(6, 5, i + 1)
-        plt.scatter(
-            y, f, c=hist2d(y, f, 20), cmap="viridis", alpha=0.8, edgecolors="none"
-        )
+        plt.scatter(y, f, c=hist2d(y, f, 20), cmap="viridis", alpha=0.8, edgecolors="none")
         plt.plot(mu, f.max(), "k+", markersize=15)
         plt.title("%s = %.3g" % (k, mu), fontdict={"size": 9})  # limit to 40 characters
         if i % 5 != 0:
@@ -477,9 +468,7 @@ def profile_idetection(start=0, stop=0, labels=(), save_dir=""):
     plt.savefig(Path(save_dir) / "idetection_profile.png", dpi=200)
 
 
-def plot_results_overlay(
-    start=0, stop=0
-):  # from utils.plots import *; plot_results_overlay()
+def plot_results_overlay(start=0, stop=0):  # from utils.plots import *; plot_results_overlay()
     # Plot training 'results*.txt', overlaying train and val losses
     s = [
         "train",
@@ -494,9 +483,7 @@ def plot_results_overlay(
         "mAP@0.5:0.95",
     ]  # legends
     t = ["Box", "Objectness", "Classification", "P-R", "mAP-F1"]  # titles
-    for f in sorted(
-        glob.glob("results*.txt") + glob.glob("../../Downloads/results*.txt")
-    ):
+    for f in sorted(glob.glob("results*.txt") + glob.glob("../../Downloads/results*.txt")):
         results = np.loadtxt(f, usecols=[2, 3, 4, 8, 9, 12, 13, 14, 10, 11], ndmin=2).T
         n = results.shape[1]  # number of rows
         x = range(start, min(stop, n) if stop else n)
@@ -540,14 +527,12 @@ def plot_results(start=0, stop=0, bucket="", id=(), labels=(), save_dir=""):
         os.system(c)
     else:
         files = list(Path(save_dir).glob("results*.txt"))
-    assert len(files), (
-        "No results.txt files found in %s, nothing to plot." % os.path.abspath(save_dir)
+    assert len(files), "No results.txt files found in %s, nothing to plot." % os.path.abspath(
+        save_dir
     )
     for fi, f in enumerate(files):
         try:
-            results = np.loadtxt(
-                f, usecols=[2, 3, 4, 8, 9, 12, 13, 14, 10, 11], ndmin=2
-            ).T
+            results = np.loadtxt(f, usecols=[2, 3, 4, 8, 9, 12, 13, 14, 10, 11], ndmin=2).T
             n = results.shape[1]  # number of rows
             x = range(start, min(stop, n) if stop else n)
             for i in range(10):
@@ -635,9 +620,7 @@ def plot_skeleton_kpts(im, kpts, steps, orig_shape=None):
         [5, 7],
     ]
 
-    pose_limb_color = palette[
-        [9, 9, 9, 9, 7, 7, 7, 0, 0, 0, 0, 0, 16, 16, 16, 16, 16, 16, 16]
-    ]
+    pose_limb_color = palette[[9, 9, 9, 9, 7, 7, 7, 0, 0, 0, 0, 0, 16, 16, 16, 16, 16, 16, 16]]
     pose_kpt_color = palette[[16, 16, 16, 16, 16, 0, 0, 0, 0, 0, 0, 9, 9, 9, 9, 9, 9]]
     radius = 5
     num_kpts = len(kpts) // steps
@@ -650,9 +633,7 @@ def plot_skeleton_kpts(im, kpts, steps, orig_shape=None):
                 conf = kpts[steps * kid + 2]
                 if conf < 0.5:
                     continue
-            cv2.circle(
-                im, (int(x_coord), int(y_coord)), radius, (int(r), int(g), int(b)), -1
-            )
+            cv2.circle(im, (int(x_coord), int(y_coord)), radius, (int(r), int(g), int(b)), -1)
 
     for sk_id, sk in enumerate(skeleton):
         r, g, b = pose_limb_color[sk_id]
@@ -686,9 +667,7 @@ def feature_visualization(x, module_type, stage, n=32, save_dir="runs/detect/exp
         batch, channels, height, width = x.shape  # batch, channels, height, width
         if height > 1 and width > 1:
             f = (
-                save_dir
-                + "/"
-                + f"stage{stage}_{module_type.split('.')[-1]}_features_{rnd}.png"
+                save_dir + "/" + f"stage{stage}_{module_type.split('.')[-1]}_features_{rnd}.png"
             )  # filename
             # f = f"stage{stage}_{module_type.split('.')[-1]}_features.png"
 
@@ -696,9 +675,7 @@ def feature_visualization(x, module_type, stage, n=32, save_dir="runs/detect/exp
                 x[0].cpu(), channels, dim=0
             )  # select batch index 0, block by channels
             n = min(n, channels)  # number of plots
-            fig, ax = plt.subplots(
-                math.ceil(n / 8), 8, tight_layout=True
-            )  # 8 rows x n/8 cols
+            fig, ax = plt.subplots(math.ceil(n / 8), 8, tight_layout=True)  # 8 rows x n/8 cols
             ax = ax.ravel()
             plt.subplots_adjust(wspace=0.05, hspace=0.05)
             for i in range(n):

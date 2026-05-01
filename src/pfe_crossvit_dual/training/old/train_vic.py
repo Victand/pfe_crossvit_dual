@@ -112,9 +112,7 @@ def validate(model, loader, criterion):
 
     # Calcul des métriques avec scikit-learn
     acc = accuracy_score(all_labels, all_preds) * 100
-    prec = (
-        precision_score(all_labels, all_preds, average="macro", zero_division=0) * 100
-    )
+    prec = precision_score(all_labels, all_preds, average="macro", zero_division=0) * 100
     rec = recall_score(all_labels, all_preds, average="macro", zero_division=0) * 100
     f1 = f1_score(all_labels, all_preds, average="macro", zero_division=0) * 100
 
@@ -243,9 +241,7 @@ def train(
         optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
         start_epoch = checkpoint["epoch"]
         best_acc = checkpoint.get("val_acc", 0.0)
-        print(
-            f" > Reprise à l'époque {start_epoch + 1} avec une Accuracy de {best_acc:.2f}%"
-        )
+        print(f" > Reprise à l'époque {start_epoch + 1} avec une Accuracy de {best_acc:.2f}%")
     save_path = Path(save_dir)
     save_path.mkdir(parents=True, exist_ok=True)
 
@@ -295,9 +291,7 @@ def train(
         avg_train_loss = train_loss / len(train_loader)
 
         # Évaluation complète
-        val_loss, val_acc, val_prec, val_rec, val_f1 = validate(
-            model, val_loader, criterion
-        )
+        val_loss, val_acc, val_prec, val_rec, val_f1 = validate(model, val_loader, criterion)
 
         # Enregistrement dans l'historique
         history["train_loss"].append(avg_train_loss)
@@ -308,9 +302,7 @@ def train(
         history["val_f1"].append(val_f1)
 
         # Affichage console
-        print(
-            f"\nEpoch {epoch + 1} | Train Loss: {avg_train_loss:.4f} | Val Loss: {val_loss:.4f}"
-        )
+        print(f"\nEpoch {epoch + 1} | Train Loss: {avg_train_loss:.4f} | Val Loss: {val_loss:.4f}")
         print(
             f"Metrics -> Acc: {val_acc:.2f}% | Prec: {val_prec:.2f}% | Rec: {val_rec:.2f}% | F1: {val_f1:.2f}%"
         )
@@ -351,9 +343,7 @@ def train(
             torch.save(checkpoint, save_path / "best_model_vit.pth")
             print(" > Nouveau record ! Modèle sauvegardé.")
             with open(log_file, "a") as f:
-                f.write(
-                    f"*** Nouveau meilleur modèle sauvegardé (Acc: {best_acc:.2f}%) ***\n\n"
-                )
+                f.write(f"*** Nouveau meilleur modèle sauvegardé (Acc: {best_acc:.2f}%) ***\n\n")
 
         else:
             no_imporve += 1
@@ -397,18 +387,14 @@ def get_unique_save_dir(base_dir="saved", prefix="run"):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Entraînement DualCrossViT avec guidage YOLO"
-    )
+    parser = argparse.ArgumentParser(description="Entraînement DualCrossViT avec guidage YOLO")
     parser.add_argument(
         "-n", "--samples", type=int, default=None, help="Nombre de samples pour le test"
     )
     parser.add_argument("-e", "--epochs", type=int, default=7, help="Nombre d'Epochs")
     parser.add_argument("-b", "--batch", type=int, default=32, help="Batch size")
     parser.add_argument("--lr", type=float, default=1e-4, help="Learning rate")
-    parser.add_argument(
-        "--resume", type=str, default=None, help="Chemin vers best_model_vit.pth"
-    )
+    parser.add_argument("--resume", type=str, default=None, help="Chemin vers best_model_vit.pth")
     args = parser.parse_args()
 
     if args.resume:
@@ -418,9 +404,7 @@ if __name__ == "__main__":
         # Sinon, on crée un nouveau dossier run_X
         run_save_dir = get_unique_save_dir(base_dir="saved", prefix="run")
     # Préparation des données
-    ld_train, ld_val = get_data(
-        n_samples=args.samples, batch_size=args.batch, num_workers=3
-    )
+    ld_train, ld_val = get_data(n_samples=args.samples, batch_size=args.batch, num_workers=3)
 
     # Initialisation du modèle
     model, _, _, _ = instanciateDualCrossVit(

@@ -47,6 +47,6 @@ def threshold_(x):
     return (x > 0.05).float()
 
 
-def parabole_beta(x):
+def parabole_beta(x, k=3):
     """Parabole de beta avec k=3 - proche d'une gaussienne mais plus legere en calculs"""
-    return (4 * x * (1 - x)) ** 3
+    return (4 * x * (1 - x)) ** k

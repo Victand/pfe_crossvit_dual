@@ -50,9 +50,7 @@ class DualCrossVitYolo(crossvit.VisionTransformer):
 
         self.patch_size = patch_size
 
-        self.default_weights = [
-            torch.ones((num_patches[i], 1)) for i in range(len(self.img_size))
-        ]
+        self.default_weights = [torch.ones((num_patches[i], 1)) for i in range(len(self.img_size))]
 
         total_depth = sum([sum(x[-2:]) for x in depth])
         dpr = [
@@ -78,6 +76,8 @@ class DualCrossVitYolo(crossvit.VisionTransformer):
             dpr_ptr += curr_depth
             self.blocks.append(blk)
 
+    def freeze(self): ...
+
     def forward_features(self, x_small, x_large, weights, num_patches):  # pyright: ignore[reportIncompatibleMethodOverride]
         B_large = x_large.shape[0]
 
@@ -96,9 +96,7 @@ class DualCrossVitYolo(crossvit.VisionTransformer):
             gs_new = int((tmp_s.shape[1] - 1) ** 0.5)
 
             # Interpolation 2D pour adapter le Pos Embed à la nouvelle grille
-            pos_embed_grid = pos_embed_grid.reshape(1, gs_old, gs_old, -1).permute(
-                0, 3, 1, 2
-            )
+            pos_embed_grid = pos_embed_grid.reshape(1, gs_old, gs_old, -1).permute(0, 3, 1, 2)
             pos_embed_grid = torch.nn.functional.interpolate(
                 pos_embed_grid,
                 size=(gs_new, gs_new),
@@ -117,9 +115,7 @@ class DualCrossVitYolo(crossvit.VisionTransformer):
 
         # Réduction : moyenne des N patchs pour retrouver le Batch Size B
         # [B*N, Tokens, Dim] -> [B, N, Tokens, Dim] -> [B, Tokens, Dim]
-        tmp_s = tmp_s.view(B_large, num_patches, tmp_s.shape[1], tmp_s.shape[2]).mean(
-            dim=1
-        )
+        tmp_s = tmp_s.view(B_large, num_patches, tmp_s.shape[1], tmp_s.shape[2]).mean(dim=1)
 
         # --- Branche Large (Global + Heatmap) ---
         tmp_l = self.patch_embed[1](x_large)
@@ -148,7 +144,7 @@ class DualCrossVitYolo(crossvit.VisionTransformer):
         return [x[:, 0] for x in xs]
 
     def forward(self, x_small, x_large, weights=None, alpha=None):  # pyright: ignore[reportIncompatibleMethodOverride]
-        B, N, C, H, W = x_small.shape
+        B, N, C, H, W = x_small.shape  # batch, class_channels, color_channels, height, with
 
         # 1. Mixage de la Heatmap avec Alpha
         if weights is not None and weights.numel() > 0:

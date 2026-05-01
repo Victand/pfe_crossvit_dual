@@ -42,9 +42,7 @@ class DatasetPerso:  # pour l'inférence
         self.mode = "image"
         self.cap = None  # La variable 'cap' est inutile mais laissée si besoin.
 
-        assert self.nf > 0, (
-            f"No images found in {p}. Supported formats are:\nimages: {img_formats}"
-        )
+        assert self.nf > 0, f"No images found in {p}. Supported formats are:\nimages: {img_formats}"
 
     def __iter__(self):
         self.count = 0

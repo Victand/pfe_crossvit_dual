@@ -28,9 +28,7 @@ np.set_printoptions(
     linewidth=320, formatter={"float_kind": "{:11.5g}".format}
 )  # format short g, %precision=5
 pd.options.display.max_columns = 10
-cv2.setNumThreads(
-    0
-)  # prevent OpenCV from multithreading (incompatible with PyTorch DataLoader)
+cv2.setNumThreads(0)  # prevent OpenCV from multithreading (incompatible with PyTorch DataLoader)
 os.environ["NUMEXPR_MAX_THREADS"] = str(min(os.cpu_count(), 8))  # NumExpr max threads
 
 
@@ -60,11 +58,7 @@ def isdocker():
 
 def emojis(str=""):
     # Return platform-dependent emoji-safe version of string
-    return (
-        str.encode().decode("ascii", "ignore")
-        if platform.system() == "Windows"
-        else str
-    )
+    return str.encode().decode("ascii", "ignore") if platform.system() == "Windows" else str
 
 
 def check_online():
@@ -91,14 +85,10 @@ def check_git_status():
             subprocess.check_output(cmd, shell=True).decode().strip().rstrip(".git")
         )  # github repo url
         branch = (
-            subprocess.check_output("git rev-parse --abbrev-ref HEAD", shell=True)
-            .decode()
-            .strip()
+            subprocess.check_output("git rev-parse --abbrev-ref HEAD", shell=True).decode().strip()
         )  # checked out
         n = int(
-            subprocess.check_output(
-                f"git rev-list {branch}..origin/master --count", shell=True
-            )
+            subprocess.check_output(f"git rev-list {branch}..origin/master --count", shell=True)
         )  # commits behind
         if n > 0:
             s = (
@@ -134,16 +124,10 @@ def check_requirements(requirements="requirements.txt", exclude=()):
     for r in requirements:
         try:
             pkg.require(r)
-        except (
-            Exception
-        ) as e:  # DistributionNotFound or VersionConflict if requirements not met
+        except Exception as e:  # DistributionNotFound or VersionConflict if requirements not met
             n += 1
-            print(
-                f"{prefix} {e.req} not found and is required by YOLOR, attempting auto-update..."
-            )
-            print(
-                subprocess.check_output(f"pip install '{e.req}'", shell=True).decode()
-            )
+            print(f"{prefix} {e.req} not found and is required by YOLOR, attempting auto-update...")
+            print(subprocess.check_output(f"pip install '{e.req}'", shell=True).decode())
 
     if n:  # if packages updated
         source = file.resolve() if "file" in locals() else requirements
@@ -198,9 +182,7 @@ def check_dataset(dict):
     # Download dataset if not found locally
     val, s = dict.get("val"), dict.get("download")
     if val and len(val):
-        val = [
-            Path(x).resolve() for x in (val if isinstance(val, list) else [val])
-        ]  # val path
+        val = [Path(x).resolve() for x in (val if isinstance(val, list) else [val])]  # val path
         if not all(x.exists() for x in val):
             print(
                 "\nWARNING: Dataset not found, nonexistent paths: %s"
@@ -286,9 +268,7 @@ def labels_to_class_weights(labels, nc=80):
 
 def labels_to_image_weights(labels, nc=80, class_weights=np.ones(80)):
     # Produces image weights based on class_weights and image contents
-    class_counts = np.array(
-        [np.bincount(x[:, 0].astype(np.int), minlength=nc) for x in labels]
-    )
+    class_counts = np.array([np.bincount(x[:, 0].astype(np.int), minlength=nc) for x in labels])
     image_weights = (class_weights.reshape(1, nc) * class_counts).sum(1)
     # index = random.choices(range(n), weights=image_weights, k=1)  # weight image sample
     return image_weights
@@ -431,9 +411,7 @@ def segment2box(segment, width=640, height=640):
         x,
         y,
     ) = x[inside], y[inside]
-    return (
-        np.array([x.min(), y.min(), x.max(), y.max()]) if any(x) else np.zeros((1, 4))
-    )  # xyxy
+    return np.array([x.min(), y.min(), x.max(), y.max()]) if any(x) else np.zeros((1, 4))  # xyxy
 
 
 def segments2boxes(segments):
@@ -452,9 +430,7 @@ def resample_segments(segments, n=1000):
         x = np.linspace(0, len(s) - 1, n)
         xp = np.arange(len(s))
         segments[i] = (
-            np.concatenate([np.interp(x, xp, s[:, i]) for i in range(2)])
-            .reshape(2, -1)
-            .T
+            np.concatenate([np.interp(x, xp, s[:, i]) for i in range(2)]).reshape(2, -1).T
         )  # segment xy
     return segments
 
@@ -522,12 +498,13 @@ def bbox_iou(box1, box2, x1y1x2y2=True, GIoU=False, DIoU=False, CIoU=False, eps=
         if CIoU or DIoU:  # Distance or Complete IoU https://arxiv.org/abs/1911.08287v1
             c2 = cw**2 + ch**2 + eps  # convex diagonal squared
             rho2 = (
-                (b2_x1 + b2_x2 - b1_x1 - b1_x2) ** 2
-                + (b2_y1 + b2_y2 - b1_y1 - b1_y2) ** 2
+                (b2_x1 + b2_x2 - b1_x1 - b1_x2) ** 2 + (b2_y1 + b2_y2 - b1_y1 - b1_y2) ** 2
             ) / 4  # center distance squared
             if DIoU:
                 return iou - rho2 / c2  # DIoU
-            elif CIoU:  # https://github.com/Zzh-tju/DIoU-SSD-pytorch/blob/master/utils/box/box_utils.py#L47
+            elif (
+                CIoU
+            ):  # https://github.com/Zzh-tju/DIoU-SSD-pytorch/blob/master/utils/box/box_utils.py#L47
                 v = (4 / math.pi**2) * torch.pow(
                     torch.atan(w2 / (h2 + eps)) - torch.atan(w1 / (h1 + eps)), 2
                 )
@@ -583,16 +560,14 @@ def bbox_alpha_iou(
             rho2 = ((rho_x**2 + rho_y**2) / 4) ** alpha  # center distance
             if DIoU:
                 return iou - rho2 / c2  # DIoU
-            elif CIoU:  # https://github.com/Zzh-tju/DIoU-SSD-pytorch/blob/master/utils/box/box_utils.py#L47
-                v = (4 / math.pi**2) * torch.pow(
-                    torch.atan(w2 / h2) - torch.atan(w1 / h1), 2
-                )
+            elif (
+                CIoU
+            ):  # https://github.com/Zzh-tju/DIoU-SSD-pytorch/blob/master/utils/box/box_utils.py#L47
+                v = (4 / math.pi**2) * torch.pow(torch.atan(w2 / h2) - torch.atan(w1 / h1), 2)
                 with torch.no_grad():
                     alpha_ciou = v / ((1 + eps) - inter / union + v)
                 # return iou - (rho2 / c2 + v * alpha_ciou)  # CIoU
-                return iou - (
-                    rho2 / c2 + torch.pow(v * alpha_ciou + eps, alpha)
-                )  # CIoU
+                return iou - (rho2 / c2 + torch.pow(v * alpha_ciou + eps, alpha))  # CIoU
         else:  # GIoU https://arxiv.org/pdf/1902.09630.pdf
             # c_area = cw * ch + eps  # convex area
             # return iou - (c_area - union) / c_area  # GIoU
@@ -624,16 +599,11 @@ def box_iou(box1, box2):
 
     # inter(N,M) = (rb(N,M,2) - lt(N,M,2)).clamp(0).prod(2)
     inter = (
-        (
-            torch.min(box1[:, None, 2:], box2[:, 2:])
-            - torch.max(box1[:, None, :2], box2[:, :2])
-        )
+        (torch.min(box1[:, None, 2:], box2[:, 2:]) - torch.max(box1[:, None, :2], box2[:, :2]))
         .clamp(0)
         .prod(2)
     )
-    return inter / (
-        area1[:, None] + area2 - inter
-    )  # iou = inter / (area1 + area2 - inter)
+    return inter / (area1[:, None] + area2 - inter)  # iou = inter / (area1 + area2 - inter)
 
 
 def wh_iou(wh1, wh2):
@@ -641,9 +611,7 @@ def wh_iou(wh1, wh2):
     wh1 = wh1[:, None]  # [N,1,2]
     wh2 = wh2[None]  # [1,M,2]
     inter = torch.min(wh1, wh2).prod(2)  # [N,M]
-    return inter / (
-        wh1.prod(2) + wh2.prod(2) - inter
-    )  # iou = inter / (area1 + area2 - inter)
+    return inter / (wh1.prod(2) + wh2.prod(2) - inter)  # iou = inter / (area1 + area2 - inter)
 
 
 def box_giou(box1, box2):
@@ -667,10 +635,7 @@ def box_giou(box1, box2):
     area2 = box_area(box2.T)
 
     inter = (
-        (
-            torch.min(box1[:, None, 2:], box2[:, 2:])
-            - torch.max(box1[:, None, :2], box2[:, :2])
-        )
+        (torch.min(box1[:, None, 2:], box2[:, 2:]) - torch.max(box1[:, None, :2], box2[:, :2]))
         .clamp(0)
         .prod(2)
     )
@@ -709,10 +674,7 @@ def box_ciou(box1, box2, eps: float = 1e-7):
     area2 = box_area(box2.T)
 
     inter = (
-        (
-            torch.min(box1[:, None, 2:], box2[:, 2:])
-            - torch.max(box1[:, None, :2], box2[:, :2])
-        )
+        (torch.min(box1[:, None, 2:], box2[:, 2:]) - torch.max(box1[:, None, :2], box2[:, :2]))
         .clamp(0)
         .prod(2)
     )
@@ -740,9 +702,7 @@ def box_ciou(box1, box2, eps: float = 1e-7):
     w_gt = box2[:, 2] - box2[:, 0]
     h_gt = box2[:, 3] - box2[:, 1]
 
-    v = (4 / (torch.pi**2)) * torch.pow(
-        (torch.atan(w_gt / h_gt) - torch.atan(w_pred / h_pred)), 2
-    )
+    v = (4 / (torch.pi**2)) * torch.pow((torch.atan(w_gt / h_gt) - torch.atan(w_pred / h_pred)), 2)
     with torch.no_grad():
         alpha = v / (1 - iou + v + eps)
     return iou - (centers_distance_squared / diagonal_distance_squared) - alpha * v
@@ -770,10 +730,7 @@ def box_diou(box1, box2, eps: float = 1e-7):
     area2 = box_area(box2.T)
 
     inter = (
-        (
-            torch.min(box1[:, None, 2:], box2[:, 2:])
-            - torch.max(box1[:, None, :2], box2[:, :2])
-        )
+        (torch.min(box1[:, None, 2:], box2[:, 2:]) - torch.max(box1[:, None, :2], box2[:, :2]))
         .clamp(0)
         .prod(2)
     )
@@ -975,9 +932,7 @@ def non_max_suppression_kpt(
             else:
                 kpts = x[:, 6:]
                 conf, j = x[:, 5:6].max(1, keepdim=True)
-                x = torch.cat((box, conf, j.float(), kpts), 1)[
-                    conf.view(-1) > conf_thres
-                ]
+                x = torch.cat((box, conf, j.float(), kpts), 1)[conf.view(-1) > conf_thres]
 
         # Filter by class
         if classes is not None:
@@ -1018,9 +973,7 @@ def non_max_suppression_kpt(
     return output
 
 
-def strip_optimizer(
-    f="best.pt", s=""
-):  # from utils.general import *; strip_optimizer()
+def strip_optimizer(f="best.pt", s=""):  # from utils.general import *; strip_optimizer()
     # Strip optimizer from 'f' to finalize training, optionally save as 's'
     x = torch.load(f, map_location=torch.device("cpu"))
     if x.get("ema"):
@@ -1033,18 +986,14 @@ def strip_optimizer(
         p.requires_grad = False
     torch.save(x, s or f)
     mb = os.path.getsize(s or f) / 1e6  # filesize
-    print(
-        f"Optimizer stripped from {f},{(' saved as %s,' % s) if s else ''} {mb:.1f}MB"
-    )
+    print(f"Optimizer stripped from {f},{(' saved as %s,' % s) if s else ''} {mb:.1f}MB")
 
 
 def print_mutation(hyp, results, yaml_file="hyp_evolved.yaml", bucket=""):
     # Print mutation results to evolve.txt (for use with train_vit.py --evolve)
     a = "%10s" * len(hyp) % tuple(hyp.keys())  # hyperparam keys
     b = "%10.3g" * len(hyp) % tuple(hyp.values())  # hyperparam values
-    c = (
-        "%10.4g" * len(results) % results
-    )  # results (P, R, mAP@0.5, mAP@0.5:0.95, val_losses x 3)
+    c = "%10.4g" * len(results) % results  # results (P, R, mAP@0.5, mAP@0.5:0.95, val_losses x 3)
     print("\n%s\n%s\nEvolved fitness: %s\n" % (a, b, c))
 
     if bucket:
@@ -1052,9 +1001,7 @@ def print_mutation(hyp, results, yaml_file="hyp_evolved.yaml", bucket=""):
         if gsutil_getsize(url) > (
             os.path.getsize("evolve.txt") if os.path.exists("evolve.txt") else 0
         ):
-            os.system(
-                "gsutil cp %s ." % url
-            )  # download evolve.txt if larger than local
+            os.system("gsutil cp %s ." % url)  # download evolve.txt if larger than local
 
     with open("evolve.txt", "a") as f:  # append result
         f.write(c + b + "\n")
@@ -1071,8 +1018,7 @@ def print_mutation(hyp, results, yaml_file="hyp_evolved.yaml", bucket=""):
             "%10.4g" * len(results) % results
         )  # results (P, R, mAP@0.5, mAP@0.5:0.95, val_losses x 3)
         f.write(
-            "# Hyperparameter Evolution Results\n# Generations: %g\n# Metrics: "
-            % len(x)
+            "# Hyperparameter Evolution Results\n# Generations: %g\n# Metrics: " % len(x)
             + c
             + "\n\n"
         )
@@ -1111,9 +1057,7 @@ def apply_classifier(x, model, img, im0):
                 im /= 255.0  # 0 - 255 to 0.0 - 1.0
                 ims.append(im)
 
-            pred_cls2 = model(torch.Tensor(ims).to(d.device)).argmax(
-                1
-            )  # classifier prediction
+            pred_cls2 = model(torch.Tensor(ims).to(d.device)).argmax(1)  # classifier prediction
             x[i] = x[i][pred_cls1 == pred_cls2]  # retain matching class detections
 
     return x

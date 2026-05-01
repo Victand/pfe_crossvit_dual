@@ -32,9 +32,7 @@ class Sum(nn.Module):
         self.weight = weight  # apply weights boolean
         self.iter = range(n - 1)  # iter object
         if weight:
-            self.w = nn.Parameter(
-                -torch.arange(1.0, n) / 2, requires_grad=True
-            )  # layer weights
+            self.w = nn.Parameter(-torch.arange(1.0, n) / 2, requires_grad=True)  # layer weights
 
     def forward(self, x):
         y = x[0]  # no weight
@@ -67,10 +65,7 @@ class MixConv2d(nn.Module):
             ].round()  # solve for equal weight indices, ax = b
 
         self.m = nn.ModuleList(
-            [
-                nn.Conv2d(c1, int(c_[g]), k[g], s, k[g] // 2, bias=False)
-                for g in range(groups)
-            ]
+            [nn.Conv2d(c1, int(c_[g]), k[g], s, k[g] // 2, bias=False) for g in range(groups)]
         )
         self.bn = nn.BatchNorm2d(c2)
         self.act = nn.LeakyReLU(0.1, inplace=True)
@@ -112,16 +107,12 @@ class ORT_NMS(torch.autograd.Function):
         batches = torch.randint(0, batch, (num_det,)).sort()[0].to(device)
         idxs = torch.arange(100, 100 + num_det).to(device)
         zeros = torch.zeros((num_det,), dtype=torch.int64).to(device)
-        selected_indices = torch.cat(
-            [batches[None], zeros[None], idxs[None]], 0
-        ).T.contiguous()
+        selected_indices = torch.cat([batches[None], zeros[None], idxs[None]], 0).T.contiguous()
         selected_indices = selected_indices.to(torch.int64)
         return selected_indices
 
     @staticmethod
-    def symbolic(
-        g, boxes, scores, max_output_boxes_per_class, iou_threshold, score_threshold
-    ):
+    def symbolic(g, boxes, scores, max_output_boxes_per_class, iou_threshold, score_threshold):
         return g.op(
             "NonMaxSuppression",
             boxes,
@@ -303,9 +294,7 @@ class End2End(nn.Module):
         self.model = model.to(device)
         self.model.model[-1].end2end = True
         self.patch_model = ONNX_TRT if max_wh is None else ONNX_ORT
-        self.end2end = self.patch_model(
-            max_obj, iou_thres, score_thres, max_wh, device, n_classes
-        )
+        self.end2end = self.patch_model(max_obj, iou_thres, score_thres, max_wh, device, n_classes)
         self.end2end.eval()
 
     def forward(self, x):

@@ -185,9 +185,7 @@ def vector_to_heatmap(
     denom = h_max - h_min
     heatmap = torch.where(denom > 1e-8, (heatmap - h_min) / denom, heatmap)
 
-    heatmap = F.interpolate(
-        heatmap, size=target_size, mode="bilinear", align_corners=False
-    )
+    heatmap = F.interpolate(heatmap, size=target_size, mode="bilinear", align_corners=False)
     if b == 1:
         return heatmap.squeeze().detach().cpu().numpy()
     return heatmap.detach().cpu().numpy()
@@ -229,9 +227,7 @@ def perform_rollout(model, show_individuals=False):
     # Rollouts on both branches
     rollouts = branches_attention_rollout(attention_maps)
 
-    direct_vector, indirect_vector = getInfluenceVectors(
-        "small", "large", rollouts, attention_maps
-    )
+    direct_vector, indirect_vector = getInfluenceVectors("small", "large", rollouts, attention_maps)
 
     map_direct, map_indirect = (
         vector_to_heatmap(

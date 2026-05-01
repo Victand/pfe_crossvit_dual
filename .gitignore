@@ -25,3 +25,5 @@ YOLOv7_ag/saved/*
 *.csv
 
 /saved
+
+run_kaggle/

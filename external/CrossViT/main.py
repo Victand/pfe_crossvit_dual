@@ -36,9 +36,7 @@ warnings.filterwarnings("ignore", category=UserWarning)
 
 
 def get_args_parser():
-    parser = argparse.ArgumentParser(
-        "CrossViT training and evaluation script", add_help=False
-    )
+    parser = argparse.ArgumentParser("CrossViT training and evaluation script", add_help=False)
     parser.add_argument("--batch-size", default=64, type=int)
     parser.add_argument("--epochs", default=300, type=int)
 
@@ -255,9 +253,7 @@ def get_args_parser():
         default="pixel",
         help='Random erase mode (default: "pixel")',
     )
-    parser.add_argument(
-        "--recount", type=int, default=1, help="Random erase count (default: 1)"
-    )
+    parser.add_argument("--recount", type=int, default=1, help="Random erase count (default: 1)")
     parser.add_argument(
         "--resplit",
         action="store_true",
@@ -335,23 +331,13 @@ def get_args_parser():
         help="semantic granularity",
     )
 
-    parser.add_argument(
-        "--output_dir", default="", help="path where to save, empty for no saving"
-    )
-    parser.add_argument(
-        "--device", default="cuda", help="device to use for training / testing"
-    )
+    parser.add_argument("--output_dir", default="", help="path where to save, empty for no saving")
+    parser.add_argument("--device", default="cuda", help="device to use for training / testing")
     parser.add_argument("--seed", default=0, type=int)
     parser.add_argument("--resume", default="", help="resume from checkpoint")
-    parser.add_argument(
-        "--no-resume-loss-scaler", action="store_false", dest="resume_loss_scaler"
-    )
-    parser.add_argument(
-        "--no-amp", action="store_false", dest="amp", help="disable amp"
-    )
-    parser.add_argument(
-        "--start_epoch", default=0, type=int, metavar="N", help="start epoch"
-    )
+    parser.add_argument("--no-resume-loss-scaler", action="store_false", dest="resume_loss_scaler")
+    parser.add_argument("--no-amp", action="store_false", dest="amp", help="disable amp")
+    parser.add_argument("--start_epoch", default=0, type=int, metavar="N", help="start epoch")
     parser.add_argument("--eval", action="store_true", help="Perform evaluation only")
     parser.add_argument("--num_workers", default=10, type=int)
     parser.add_argument(
@@ -363,9 +349,7 @@ def get_args_parser():
     parser.set_defaults(pin_mem=True)
 
     # distributed training parameters
-    parser.add_argument(
-        "--world_size", default=1, type=int, help="number of distributed processes"
-    )
+    parser.add_argument("--world_size", default=1, type=int, help="number of distributed processes")
     parser.add_argument("--local_rank", type=int)
     parser.add_argument(
         "--dist_url", default="env://", help="url used to set up distributed training"

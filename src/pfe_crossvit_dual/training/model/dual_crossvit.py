@@ -188,9 +188,7 @@ class DualCrossVit(crossvit.VisionTransformer):
 
         self.patch_size = patch_size
 
-        self.default_weights = [
-            torch.ones((num_patches[i], 1)) for i in range(len(self.img_size))
-        ]
+        self.default_weights = [torch.ones((num_patches[i], 1)) for i in range(len(self.img_size))]
 
         total_depth = sum([sum(x[-2:]) for x in depth])
         dpr = [
@@ -228,10 +226,7 @@ class DualCrossVit(crossvit.VisionTransformer):
             expected_size = self.img_size[i]
 
             # Interpolation de l'image si besoin
-            if (
-                current_img.shape[-2] != expected_size
-                or current_img.shape[-1] != expected_size
-            ):
+            if current_img.shape[-2] != expected_size or current_img.shape[-1] != expected_size:
                 x_ = torch.nn.functional.interpolate(
                     current_img,
                     size=(expected_size, expected_size),
@@ -276,9 +271,7 @@ class DualCrossVit(crossvit.VisionTransformer):
                     mode="linear",
                     align_corners=False,
                 )
-                pos_embed = torch.cat(
-                    (pos_embed_cls, pos_embed_patches.transpose(1, 2)), dim=1
-                )
+                pos_embed = torch.cat((pos_embed_cls, pos_embed_patches.transpose(1, 2)), dim=1)
 
             tmp = tmp + pos_embed
             tmp = self.pos_drop(tmp)

@@ -18,9 +18,7 @@ from YOLOv7_ag.utils.add_nms import RegisterNMS
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--weights", type=str, default="./yolor-csp-c.pt", help="weights path"
-    )
+    parser.add_argument("--weights", type=str, default="./yolor-csp-c.pt", help="weights path")
     parser.add_argument(
         "--img-size", nargs="+", type=int, default=[640, 640], help="image size"
     )  # height, width
@@ -31,9 +29,7 @@ if __name__ == "__main__":
         action="store_true",
         help="dynamic batch onnx for tensorrt and onnx-runtime",
     )
-    parser.add_argument(
-        "--grid", action="store_true", help="export Detect() layer grid"
-    )
+    parser.add_argument("--grid", action="store_true", help="export Detect() layer grid")
     parser.add_argument("--end2end", action="store_true", help="export end2end onnx")
     parser.add_argument(
         "--max-wh",
@@ -41,25 +37,13 @@ if __name__ == "__main__":
         default=None,
         help="None for tensorrt nms, int value for onnx-runtime nms",
     )
-    parser.add_argument(
-        "--topk-all", type=int, default=100, help="topk objects for every images"
-    )
-    parser.add_argument(
-        "--iou-thres", type=float, default=0.45, help="iou threshold for NMS"
-    )
-    parser.add_argument(
-        "--conf-thres", type=float, default=0.25, help="conf threshold for NMS"
-    )
-    parser.add_argument(
-        "--device", default="cpu", help="cuda device, i.e. 0 or 0,1,2,3 or cpu"
-    )
+    parser.add_argument("--topk-all", type=int, default=100, help="topk objects for every images")
+    parser.add_argument("--iou-thres", type=float, default=0.45, help="iou threshold for NMS")
+    parser.add_argument("--conf-thres", type=float, default=0.25, help="conf threshold for NMS")
+    parser.add_argument("--device", default="cpu", help="cuda device, i.e. 0 or 0,1,2,3 or cpu")
     parser.add_argument("--simplify", action="store_true", help="simplify onnx model")
-    parser.add_argument(
-        "--include-nms", action="store_true", help="export end2end onnx"
-    )
-    parser.add_argument(
-        "--fp16", action="store_true", help="CoreML FP16 half-precision export"
-    )
+    parser.add_argument("--include-nms", action="store_true", help="export end2end onnx")
+    parser.add_argument("--fp16", action="store_true", help="CoreML FP16 half-precision export")
     parser.add_argument("--int8", action="store_true", help="CoreML INT8 quantization")
     opt = parser.parse_args()
     opt.img_size *= 2 if len(opt.img_size) == 1 else 1  # expand
@@ -76,9 +60,7 @@ if __name__ == "__main__":
 
     # Checks
     gs = int(max(model.stride))  # grid size (max stride)
-    opt.img_size = [
-        check_img_size(x, gs) for x in opt.img_size
-    ]  # verify img_size are gs-multiples
+    opt.img_size = [check_img_size(x, gs) for x in opt.img_size]  # verify img_size are gs-multiples
 
     # Input
     img = torch.zeros(opt.batch_size, 3, *opt.img_size).to(
@@ -119,27 +101,17 @@ if __name__ == "__main__":
         # convert model from torchscript and apply pixel scaling as per detect.py
         ct_model = ct.convert(
             ts,
-            inputs=[
-                ct.ImageType("image", shape=img.shape, scale=1 / 255.0, bias=[0, 0, 0])
-            ],
+            inputs=[ct.ImageType("image", shape=img.shape, scale=1 / 255.0, bias=[0, 0, 0])],
         )
-        bits, mode = (
-            (8, "kmeans_lut")
-            if opt.int8
-            else (16, "linear")
-            if opt.fp16
-            else (32, None)
-        )
+        bits, mode = (8, "kmeans_lut") if opt.int8 else (16, "linear") if opt.fp16 else (32, None)
         if bits < 32:
             if sys.platform.lower() == "darwin":  # quantization only supported on macOS
                 with warnings.catch_warnings():
                     warnings.filterwarnings(
                         "ignore", category=DeprecationWarning
                     )  # suppress numpy==1.20 float warning
-                    ct_model = (
-                        ct.models.neural_network.quantization_utils.quantize_weights(
-                            ct_model, bits, mode
-                        )
+                    ct_model = ct.models.neural_network.quantization_utils.quantize_weights(
+                        ct_model, bits, mode
                     )
             else:
                 print("quantization only supported on macOS, skipping...")

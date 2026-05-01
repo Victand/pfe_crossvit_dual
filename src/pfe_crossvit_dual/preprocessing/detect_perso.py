@@ -17,9 +17,7 @@ from YOLOv7_ag.utils.torch_utils import select_device
 from pfe_crossvit_dual.preprocessing.dataset_perso import DatasetPerso
 
 
-def auto_generate_weights(
-    detections_list, grid_size=14, num_classes=6, img_shape=(640, 640)
-):
+def auto_generate_weights(detections_list, grid_size=14, num_classes=6, img_shape=(640, 640)):
     # 7 canaux : [0:leaf, 1:root, 2:stem, 3:flower, 4:fruit, 5:seed, 6:FOND]
     masks = torch.zeros((num_classes + 1, grid_size, grid_size))
 
@@ -123,18 +121,13 @@ def run_detect_perso(
                         }
                     )
 
-                    patch = im0[
-                        max(0, y1) : min(h_orig, y2), max(0, x1) : min(w_orig, x2)
-                    ]
+                    patch = im0[max(0, y1) : min(h_orig, y2), max(0, x1) : min(w_orig, x2)]
                     if patch.size > 0:
                         patch_resized = cv2.resize(patch, (224, 224))
                         patch_tensor = (
-                            torch.from_numpy(patch_resized).permute(2, 0, 1).float()
-                            / 255.0
+                            torch.from_numpy(patch_resized).permute(2, 0, 1).float() / 255.0
                         )
-                        patches_data.append(
-                            {"tensor": patch_tensor, "class_id": int(cls.item())}
-                        )
+                        patches_data.append({"tensor": patch_tensor, "class_id": int(cls.item())})
 
         poids_multi = auto_generate_weights(
             dets_vit,

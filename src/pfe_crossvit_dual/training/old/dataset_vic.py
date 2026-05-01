@@ -68,9 +68,7 @@ class DualInputDataset(Dataset):
                 if not segmented_img_p.exists():
                     continue
                 if self.use_yolo_weights:
-                    weight_p = (
-                        original_img_p.parent / f"{original_img_p.stem}_weights.pt"
-                    )
+                    weight_p = original_img_p.parent / f"{original_img_p.stem}_weights.pt"
                     if not weight_p.exists():
                         continue
                 self.samples.append((original_img_p, segmented_img_p, label_int))
@@ -131,11 +129,7 @@ class DualInputDataset(Dataset):
             # Remplissage si l'image manque de tiges
             if len(final_list) < self.num_patches:
                 used_ids = [id(t) for t in final_list]
-                remains = [
-                    p["tensor"]
-                    for p in all_patches_data
-                    if id(p["tensor"]) not in used_ids
-                ]
+                remains = [p["tensor"] for p in all_patches_data if id(p["tensor"]) not in used_ids]
                 random.shuffle(remains)
                 final_list.extend(remains[: (self.num_patches - len(final_list))])
 
@@ -144,14 +138,12 @@ class DualInputDataset(Dataset):
             final_list = final_list[: self.num_patches]
         elif len(final_list) < self.num_patches:
             padding = [
-                torch.zeros((3, 224, 224))
-                for _ in range(self.num_patches - len(final_list))
+                torch.zeros((3, 224, 224)) for _ in range(self.num_patches - len(final_list))
             ]
             final_list.extend(padding)
 
         selected_patches = [
-            TF.normalize(p, self.mean, self.std) if p.max() > 0 else p
-            for p in final_list
+            TF.normalize(p, self.mean, self.std) if p.max() > 0 else p for p in final_list
         ]
         return torch.stack(selected_patches), img_large, label_int, weights
 
@@ -162,15 +154,8 @@ class DualInputDataset(Dataset):
                 self.active_transforms[tf] = True
 
     def patches_weights(self, segmented_tensor, patch_size: int, f=lambda x: x + 1e-7):
-        mask = (
-            (torch.sum(segmented_tensor, dim=0) > 0)
-            .float()
-            .unsqueeze(dim=0)
-            .unsqueeze(0)
-        )
-        patches = nnTF.unfold(mask, kernel_size=patch_size, stride=patch_size).squeeze(
-            0
-        )
+        mask = (torch.sum(segmented_tensor, dim=0) > 0).float().unsqueeze(dim=0).unsqueeze(0)
+        patches = nnTF.unfold(mask, kernel_size=patch_size, stride=patch_size).squeeze(0)
         ratios = torch.mean(patches, dim=0)
         num_p = ratios.numel()
         w_norm = (
@@ -193,11 +178,7 @@ class DualInputDataset(Dataset):
 
         if isinstance(mask_or_heatmap, torch.Tensor):
             # Cas YOLO (Heatmap) : on lisse les valeurs avec Bilinear
-            interp = (
-                TF.InterpolationMode.BILINEAR
-                if is_heatmap
-                else TF.InterpolationMode.NEAREST
-            )
+            interp = TF.InterpolationMode.BILINEAR if is_heatmap else TF.InterpolationMode.NEAREST
             mask_or_heatmap = TF.resize(
                 mask_or_heatmap, new_size, interpolation=interp, antialias=True
             )
@@ -215,9 +196,7 @@ class DualInputDataset(Dataset):
         if self.is_train:
             # Coupe aléatoire (Crop)
             if self.active_transforms["random_crop"]:
-                i, j, h, w = transforms.RandomCrop.get_params(
-                    img, output_size=self.image_size
-                )
+                i, j, h, w = transforms.RandomCrop.get_params(img, output_size=self.image_size)
                 img = TF.crop(img, i, j, h, w)
                 mask_or_heatmap = TF.crop(mask_or_heatmap, i, j, h, w)
 
@@ -267,9 +246,7 @@ def normalize_and_erase(dualdataset, img1, img2):
 
 
 def prepare_dataloaders(train_ds, val_ds, batch_size, num_workers):
-    t_ld = DataLoader(
-        train_ds, batch_size=batch_size, num_workers=num_workers, shuffle=True
-    )
+    t_ld = DataLoader(train_ds, batch_size=batch_size, num_workers=num_workers, shuffle=True)
     v_ld = DataLoader(
         val_ds, batch_size=int(2 * batch_size), num_workers=num_workers, shuffle=False
     )
@@ -321,9 +298,7 @@ def plot_samples_with_weights(samples, classes, paths, alpha_config, suptitle=""
     cbar.set_ticks([0.1, 1.0, 10.0])
     cbar.set_ticklabels(["0.1 (Fond)", "1.0 (Feuille)", "10.0 (Tige)"])
 
-    ax_main.set_title(
-        f"Visualisation Guidage REEL | Classe: {classes[label_int]}\n{suptitle}"
-    )
+    ax_main.set_title(f"Visualisation Guidage REEL | Classe: {classes[label_int]}\n{suptitle}")
 
     if len(patches) > 0:
         stems = [p for p in patches if p["class_id"] == 2]
@@ -351,9 +326,7 @@ def plot_samples_with_weights(samples, classes, paths, alpha_config, suptitle=""
         selected_patches = (stems + others)[:3]
 
         for idx, p_data in enumerate(selected_patches):
-            ax_p = fig.add_subplot(
-                gs[1, idx]
-            )  # Occupe une colonne de la deuxième ligne
+            ax_p = fig.add_subplot(gs[1, idx])  # Occupe une colonne de la deuxième ligne
             # Conversion (C, H, W) -> (H, W, C) pour matplotlib
             p_img = p_data["tensor"].permute(1, 2, 0).numpy()
 

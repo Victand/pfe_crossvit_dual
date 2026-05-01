@@ -62,9 +62,7 @@ def train_one_epoch(
             optimizer.zero_grad()
 
             # this attribute is added by timm on one optimizer (adahessian)
-            is_second_order = (
-                hasattr(optimizer, "is_second_order") and optimizer.is_second_order
-            )
+            is_second_order = hasattr(optimizer, "is_second_order") and optimizer.is_second_order
 
             if amp:
                 loss_scaler(
@@ -140,9 +138,7 @@ def concat_all_gather(tensor):
     if not torch.distributed.is_available() or not torch.distributed.is_initialized():
         return tensor
 
-    tensors_gather = [
-        torch.ones_like(tensor) for _ in range(torch.distributed.get_world_size())
-    ]
+    tensors_gather = [torch.ones_like(tensor) for _ in range(torch.distributed.get_world_size())]
     torch.distributed.all_gather(tensors_gather, tensor, async_op=False)
 
     output = torch.cat(tensors_gather, dim=0)

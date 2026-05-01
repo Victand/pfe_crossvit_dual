@@ -18,9 +18,7 @@ def create_genera_dir_struct(
 
     # get classes
     # get all image ids (eg "castanea146")
-    img_ids = [
-        fn.split(".")[0] for fn in os.listdir(original_dir) if fn.endswith(".jpg")
-    ]
+    img_ids = [fn.split(".")[0] for fn in os.listdir(original_dir) if fn.endswith(".jpg")]
     # strip number from image ids
     labels = [re.sub(r"\d+", "", img_id) for img_id in img_ids]
     # get unique classes
@@ -178,10 +176,6 @@ def create_thorns_dir_struct(
         f"\n{n_labeled_data} elements copied to {data_root_path}. Execution time = {end_time - start_time:.2f}s\nNumber of images without correspondant label = {no_labels_count}"
     )
     print("-" * 20)
-    print(
-        f"no_thorns/thorns ratio : {int(class1_ratio * 100)}/{100 - int(class1_ratio * 100)}"
-    )
-    print(
-        f"No Thorns count: {class1_count}    Thorns count: {n_labeled_data - class1_count}"
-    )
+    print(f"no_thorns/thorns ratio : {int(class1_ratio * 100)}/{100 - int(class1_ratio * 100)}")
+    print(f"No Thorns count: {class1_count}    Thorns count: {n_labeled_data - class1_count}")
     print(f"No labels count: {no_labels_count}")

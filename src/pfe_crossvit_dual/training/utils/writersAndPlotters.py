@@ -116,9 +116,7 @@ def plot_one_metric_multiple_configs(metric_name, configs_dict):
     plt.show()
 
 
-def show_tensors(
-    tensor_images, classes, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
-):
+def show_tensors(tensor_images, classes, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]):
     """
     tensor_images = [(original_img,segmented_img, label_predit, label_gt),...]
     """
@@ -187,9 +185,7 @@ def plot_weight_example(
             overlay[..., 3] = (w_grid / w_grid.max()) * 0.7
 
         axes[i].imshow(img)
-        axes[i].imshow(
-            overlay, extent=(0, img_size, img_size, 0), interpolation="nearest"
-        )
+        axes[i].imshow(overlay, extent=(0, img_size, img_size, 0), interpolation="nearest")
         if images_name is not None:
             axes[i].set_title(f"Image Id : {images_name[i]}")
         axes[i].axis("off")
@@ -199,9 +195,7 @@ def plot_weight_example(
     plt.show()
 
 
-def compare_functions_for_patches_ponderation(
-    dataset, functions: dict, num_images: int = 1
-):
+def compare_functions_for_patches_ponderation(dataset, functions: dict, num_images: int = 1):
     """
     Compare different functions to create weights for patches.
     Args:
@@ -226,9 +220,7 @@ def compare_functions_for_patches_ponderation(
     for f_name, f in functions.items():
         weights = []
         for i in range(len(imgs)):
-            weights.append(
-                dataset.patches_weights(imgs[i][0], dataset.patch_size[1], f)
-            )
+            weights.append(dataset.patches_weights(imgs[i][0], dataset.patch_size[1], f))
         plot_weight_example(
             imgs_and_names[0],
             weights,

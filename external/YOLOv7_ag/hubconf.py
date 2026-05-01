@@ -15,9 +15,7 @@ from YOLOv7_ag.utils.google_utils import attempt_download
 from YOLOv7_ag.utils.torch_utils import select_device
 
 dependencies = ["torch", "yaml"]
-check_requirements(
-    Path(__file__).parent / "requirements.txt", exclude=("pycocotools", "thop")
-)
+check_requirements(Path(__file__).parent / "requirements.txt", exclude=("pycocotools", "thop"))
 set_logging()
 
 
@@ -34,9 +32,7 @@ def create(name, pretrained, channels, classes, autoshape):
         pytorch model
     """
     try:
-        cfg = list((Path(__file__).parent / "cfg").rglob(f"{name}.yaml"))[
-            0
-        ]  # model.yaml path
+        cfg = list((Path(__file__).parent / "cfg").rglob(f"{name}.yaml"))[0]  # model.yaml path
         model = Model(cfg, channels, classes)
         if pretrained:
             fname = f"{name}.pt"  # checkpoint filename

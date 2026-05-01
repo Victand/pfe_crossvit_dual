@@ -23,15 +23,15 @@ def init_logs(save_path: Path, parameters, resume_path):
     log_file = os.path.join(save_path, "training_logs.txt")
     if resume_path:
         with open(log_file, "a") as f:
-            f.write("\n=== Nouveaux Paramètres ===\n")
+            f.write("\n\n=== Nouveaux Paramètres ===\n")
             f.write(pprint.pformat(parameters))
-            f.write("\n=== Reprise de l'entraînement ===\n")
+            f.write("\n\n=== Reprise de l'entraînement ===\n")
     else:
         with open(log_file, "w") as f:
             f.write(f"{save_path.name}\n")
             f.write("=== Paramètres ===\n")
             f.write(pprint.pformat(parameters))
-            f.write("\n=== Début de l'entraînement ===\n")
+            f.write("\n\n=== Début de l'entraînement ===\n")
 
 
 def get_unique_save_path(base_dir="saved", prefix="run"):
@@ -82,9 +82,7 @@ def training_pipeline(config):
         **config["model"],
         num_classes=len(id_to_label),
     )
-    optimizer = optim.Adam(
-        params=model.parameters(), lr=config["lr"], weight_decay=1e-4
-    )
+    optimizer = optim.Adam(params=model.parameters(), lr=config["lr"], weight_decay=1e-4)
     criterion = nn.CrossEntropyLoss()
     alphas = torch.tensor(config["alphas"]).to(device)
 
