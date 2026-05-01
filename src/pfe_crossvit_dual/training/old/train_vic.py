@@ -273,7 +273,7 @@ def train(
     for epoch in range(start_epoch, epochs):
         model.train()
         train_loss = 0.0
-        pbar = tqdm(train_loader, desc=f"Époque {epoch + 1}/{epochs}")
+        pbar = tqdm(train_loader, desc=f"Epoch {epoch + 1}/{epochs}")
 
         for x_small, img_large, labels, weights in pbar:
             x_small = x_small.to(DEVICE)
@@ -309,7 +309,7 @@ def train(
 
         # Affichage console
         print(
-            f"\nÉpoque {epoch + 1} | Train Loss: {avg_train_loss:.4f} | Val Loss: {val_loss:.4f}"
+            f"\nEpoch {epoch + 1} | Train Loss: {avg_train_loss:.4f} | Val Loss: {val_loss:.4f}"
         )
         print(
             f"Metrics -> Acc: {val_acc:.2f}% | Prec: {val_prec:.2f}% | Rec: {val_rec:.2f}% | F1: {val_f1:.2f}%"
@@ -317,7 +317,7 @@ def train(
 
         # Écriture dans le fichier de log
         with open(log_file, "a") as f:
-            f.write(f"Époque {epoch + 1}/{epochs}\n")
+            f.write(f"Epoch {epoch + 1}/{epochs}\n")
             f.write(f"Train Loss: {avg_train_loss:.4f} | Val Loss: {val_loss:.4f}\n")
             f.write(
                 f"Accuracy: {val_acc:.2f}% | Precision: {val_prec:.2f}% | Recall: {val_rec:.2f}% | F1-Score: {val_f1:.2f}%\n"

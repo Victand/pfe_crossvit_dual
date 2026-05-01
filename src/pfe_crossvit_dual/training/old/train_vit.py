@@ -108,7 +108,7 @@ def train(model, train_loader, val_loader, epochs, lr, save_dir="saved"):
     for epoch in range(epochs):
         model.train()
         train_loss = 0.0
-        pbar = tqdm(train_loader, desc=f"Époque {epoch + 1}/{epochs}")
+        pbar = tqdm(train_loader, desc=f"Epoch {epoch + 1}/{epochs}")
 
         for img_orig, img_seg, labels, weights in pbar:
             img_orig, img_seg, labels = (
@@ -133,7 +133,7 @@ def train(model, train_loader, val_loader, epochs, lr, save_dir="saved"):
 
         # Validation
         avg_val_loss, val_acc = validate(model, val_loader, criterion)
-        print(f"\nÉpoque {epoch + 1} : Val Acc = {val_acc:.2f}%")
+        print(f"\nEpoch {epoch + 1} : Val Acc = {val_acc:.2f}%")
 
         # --- SAUVEGARDE DU MEILLEUR MODÈLE ---
         if val_acc > best_acc:

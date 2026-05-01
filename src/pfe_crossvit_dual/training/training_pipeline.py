@@ -5,6 +5,7 @@ import torch.nn as nn
 import os
 import argparse
 from pathlib import Path
+import pprint
 
 from pfe_crossvit_dual.constants.paths import OUTPUT_DIR
 from pfe_crossvit_dual.training.dataset.data_helper import get_data
@@ -17,18 +18,20 @@ from pfe_crossvit_dual.training.model.crossvit_kwargs import CROSSVIT_KWARGS_MAP
 from pfe_crossvit_dual.training.train import train
 
 
-def init_logs(
-    save_path, model_name, alphas, epochs, lr, batch_size, patience, resume_path
-):
+def init_logs(save_path: Path, parameters, resume_path):
     """Initialisation du fichier de log et de l'historique"""
     log_file = os.path.join(save_path, "training_logs.txt")
-    mode = "a" if resume_path else "w"
-    with open(log_file, mode) as f:
-        f.write("=== Début de l'entraînement ===\n")
-        f.write(
-            f"Modèle: {model_name} | Epochs: {epochs} | LR: {lr}|batch size {batch_size}|patience {patience}\n"
-            f"stratégie {alphas.cpu()}\n\n"
-        )
+    if resume_path:
+        with open(log_file, "a") as f:
+            f.write("\n=== Nouveaux Paramètres ===\n")
+            f.write(pprint.pformat(parameters))
+            f.write("\n=== Reprise de l'entraînement ===\n")
+    else:
+        with open(log_file, "w") as f:
+            f.write(f"{save_path.name}\n")
+            f.write("=== Paramètres ===\n")
+            f.write(pprint.pformat(parameters))
+            f.write("\n=== Début de l'entraînement ===\n")
 
 
 def get_unique_save_path(base_dir="saved", prefix="run"):
@@ -55,12 +58,15 @@ def training_pipeline(config):
     if config["resume_path"]:
         # Si tu reprends un entraînement, on sauvegarde dans le même dossier que le modèle chargé
         save_path = Path(config["resume_path"]).parent
+        print(f"Resuming training at path {save_path}")
     else:
         # Sinon, on crée un nouveau dossier run_X
         save_path = get_unique_save_path(base_dir=OUTPUT_DIR, prefix="run")
         save_path.mkdir(parents=True, exist_ok=True)
+        print(f"New training {save_path.name}")
 
     # data
+    print("Loading data...")
     img_size = CROSSVIT_KWARGS_MAP[config["model"]["crossvit"]]["img_size"]
     train_loader, val_loader, id_to_label = get_data(
         img_size=img_size,
@@ -69,6 +75,7 @@ def training_pipeline(config):
     )
 
     # model
+    print("Instanciating model...")
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = instanciate_dualcrossvit(
         device=device,
@@ -84,17 +91,11 @@ def training_pipeline(config):
     if config["resume_path"] and os.path.isfile(config["resume_path"]):
         load_training(config["resume_path"], model, optimizer)
 
+    # logs
+    init_logs(save_path, config, config["resume_path"])
+
     # training loop
-    init_logs(
-        save_path,
-        config["model"]["crossvit"],
-        alphas,
-        epochs=config["epochs"],
-        lr=config["lr"],
-        batch_size=config["batch_size"],
-        patience=config["patience"],
-        resume_path=config["resume_path"],
-    )
+    print("Training model...")
     history, best_f1 = train(
         model,
         train_loader,

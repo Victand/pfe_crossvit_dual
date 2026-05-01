@@ -14,7 +14,7 @@ def validate(model, loader, criterion, alphas, device):
     all_labels = []
 
     with torch.no_grad():
-        for x_small, img_large, weights, labels in loader:
+        for x_small, img_large, weights, labels in tqdm(loader, desc="val"):
             x_small = x_small.to(device)
             img_large = img_large.to(device)
             labels = labels.to(device)
@@ -75,7 +75,7 @@ def train(
     for epoch in range(start_epoch, epochs):
         model.train()
         train_loss = 0.0
-        pbar = tqdm(train_loader, desc=f"Époque {epoch + 1}/{epochs}")
+        pbar = tqdm(train_loader, desc=f"[{epoch + 1}/{epochs}] train")
 
         for x_small, img_large, weights, labels in pbar:
             x_small = x_small.to(device, non_blocking=True)
@@ -111,15 +111,15 @@ def train(
 
         # Affichage console
         print(
-            f"\nÉpoque {epoch + 1} | Train Loss: {avg_train_loss:.4f} | Val Loss: {val_loss:.4f}"
+            f"Epoch {epoch + 1} | Train Loss: {avg_train_loss:.4f} | Val Loss: {val_loss:.4f}"
         )
         print(
-            f"Metrics -> Acc: {val_acc:.2f}% | Prec: {val_prec:.2f}% | Rec: {val_rec:.2f}% | F1: {val_f1:.2f}%"
+            f"Metrics -> Acc: {val_acc:.2f}% | Prec: {val_prec:.2f}% | Rec: {val_rec:.2f}% | F1: {val_f1:.2f}%\n"
         )
 
         # Écriture dans le fichier de log
         with open(log_path, "a") as f:
-            f.write(f"Époque {epoch + 1}/{epochs}\n")
+            f.write(f"Epoch {epoch + 1}/{epochs}\n")
             f.write(f"Train Loss: {avg_train_loss:.4f} | Val Loss: {val_loss:.4f}\n")
             f.write(
                 f"Accuracy: {val_acc:.2f}% | Precision: {val_prec:.2f}% | Recall: {val_rec:.2f}% | F1-Score: {val_f1:.2f}%\n"

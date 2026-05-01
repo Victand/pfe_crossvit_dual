@@ -147,6 +147,7 @@ class DualInputDataset(Dataset):
         cache_fp = self.cache_dir / f"precomputed_{dataset}_{datatype}_{phase}.pt"
 
         if use_cache and cache_fp.is_file():
+            print(f"loading cache at path {cache_fp}...")
             self._cache = torch.load(cache_fp, weights_only=False)
             return
 

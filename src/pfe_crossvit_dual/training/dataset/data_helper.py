@@ -78,7 +78,7 @@ def get_data(
         **dataset_kwargs,
     )
 
-    print(f"Train dataset length: {len(train_ds)}")
-    print(f"Validation dataset length: {len(val_ds)}")
+    print(f"size train dataset: {len(train_ds)}")
+    print(f"size validation dataset: {len(val_ds)}")
 
     return *prepare_dataloaders(train_ds, val_ds, batch_size, num_workers), id_to_label
