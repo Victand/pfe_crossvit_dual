@@ -49,7 +49,6 @@ def plot_input(ax, img_large, weights, alphas, label):
     ax.imshow(img_large)
     if weights is not None:
         h_map = (weights * alphas[: weights.shape[1]].view(-1, 1, 1)).sum(dim=0).cpu().numpy()
-        print(f"range hmap: {np.unique(h_map)}")
         ax.imshow(
             h_map,
             cmap="viridis",

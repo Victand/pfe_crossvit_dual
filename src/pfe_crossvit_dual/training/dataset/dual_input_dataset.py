@@ -6,7 +6,6 @@ import torchvision.transforms as tf
 from torchvision.tv_tensors import Image
 import torch
 import torch.nn.functional as nnTF
-from PIL import ImageFile
 from collections import defaultdict
 from tqdm import tqdm
 from typing import Literal
@@ -19,8 +18,6 @@ from pfe_crossvit_dual.training.utils.transforms import (
     scale_translation,
     scale_crop_params,
 )
-
-ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 
 IMGNET_MEAN = [0.485, 0.456, 0.406]
@@ -69,9 +66,8 @@ class DualInputDataset(Dataset):
             or self.branch_small == "segmented"
             or self.branch_large_weight == "ratio"
         )
-        self.need_yolo_data = (
-            self.branch_small == "yolo_patches" or self.branch_large_weight == "yolo"
-        )
+        self.need_yolo_weight = self.branch_large_weight == "yolo"
+        self.need_yolo_patches = self.branch_small == "yolo_patches"
 
         # ratio weights
         self.weight_function = ratio_weight_function
@@ -90,136 +86,91 @@ class DualInputDataset(Dataset):
         for p in original_img_paths:
             original_img = p
             segmented_img = p.parent.parent.parent / "segmented" / p.parent.name / p.name
-            weight = p.with_name(f"{p.stem}_weights.pt")
+            yolo_data = p.with_name(f"{p.stem}_weights.pt")
             label = self.label_to_id[str(p.parent.name)]
 
-            self.samples.append((original_img, segmented_img, weight, label))
-
-    def _load_cache(self, o_cache_fp, s_cache_fp, y_cache_fp, l_cache_fp):
-        o_cache = s_cache = y_cache = l_cache = None
-
-        # load cache
-        try:
-            l_cache = torch.load(l_cache_fp, weights_only=False)
-            if self.need_original:
-                o_cache = torch.load(o_cache_fp, weights_only=False)
-            if self.need_segmented:
-                s_cache = torch.load(s_cache_fp, weights_only=False)
-            if self.need_yolo_data:
-                y_cache = torch.load(y_cache_fp, weights_only=False)
-        except Exception as e:
-            print(f"loading cache failed.")
-            return False
-
-        # consistency check
-        lengths = []
-        lengths.append(len(l_cache))
-        if o_cache is not None:
-            lengths.append(len(o_cache))
-        if s_cache is not None:
-            lengths.append(len(s_cache))
-        if y_cache is not None:
-            lengths.append(len(y_cache))
-
-        if len(set(lengths)) != 1:
-            print("cache length mismatch, recomputing...")
-            return False
-
-        # assemble
-        self._cache = list(
-            zip(
-                o_cache if o_cache is not None else [None] * lengths[0],
-                s_cache if s_cache is not None else [None] * lengths[0],
-                y_cache if y_cache is not None else [None] * lengths[0],
-                l_cache,
+            self.samples.append(
+                {
+                    "original": original_img,
+                    "segmented": segmented_img,
+                    "yolo_data": yolo_data,
+                    "label": label,
+                }
             )
-        )
 
-        return True
+    def _load_cache(self, cache_fp):
+        try:
+            cache = torch.load(cache_fp, weights_only=False)
+            print(f"loaded cache {cache_fp.name} successfully.")
+            return cache
+        except Exception:
+            print(f"loading cache  {cache_fp.name} failed.")
+            return {}
 
     def _precompute_all(self, use_cache=True, store_cache=True):
         """precompute all io tasks and expensive deterministic tasks (ie not random transforms)"""
-        dataset = self.samples[0][0].parent.parent.parent.name
+        dataset = self.samples[0]["original"].parent.parent.parent.name
         phase = "train" if self.is_train else "val"
         cache_subdir = self.cache_dir / f"precomputed_{dataset}_{phase}"
 
-        o_cache_fp = cache_subdir / "original.pt"
-        s_cache_fp = cache_subdir / "segmented.pt"
-        y_cache_fp = cache_subdir / "yolo_data.pt"
-        l_cache_fp = cache_subdir / "label.pt"
+        keys = ["label", "original", "segmented", "yolo_patches", "yolo_weight"]
+        data_needed = [k for k in keys if getattr(self, f"need_{k}", True)]
+        data = {k: {} for k in data_needed}
 
-        if use_cache and self._load_cache(o_cache_fp, s_cache_fp, y_cache_fp, l_cache_fp):
-            print("loaded cache successfully")
-            return
+        # get cache
+        if use_cache:
+            for k in data_needed.copy():
+                cache_fp = cache_subdir / f"{k}.pt"
+                data[k] = self._load_cache(cache_fp)
+                if data[k]:
+                    data_needed.remove(k)
 
-        cache_subdir.mkdir(exist_ok=True)
-
-        # compute cache
-        o_cache = []
-        s_cache = []
-        y_cache = []
-        l_cache = []
-        for i in tqdm(range(len(self.samples)), desc="precomputing dataset"):
-            data = self._get_sample_data(i, True)
-            if data is None:
-                continue
-
-            original, segmented, yolo_data, label = data
-            l_cache.append(label)
-            if original is not None:
-                o_cache.append(original)
-            if segmented is not None:
-                s_cache.append(segmented)
-            if yolo_data is not None:
-                y_cache.append(yolo_data)
-
-        # store
-        if store_cache:
-            torch.save(o_cache, o_cache_fp)
-            torch.save(s_cache, s_cache_fp)
-            torch.save(y_cache, y_cache_fp)
-            torch.save(l_cache, l_cache_fp)
+        # compute not cached data
+        if data_needed:
+            print(f"precomputing {data_needed}")
+            for i in tqdm(range(len(self.samples)), desc="precomputing data"):
+                sample_data = self._get_sample_data(i, keys=data_needed, resize=True)
+                if sample_data is None:
+                    continue
+                for k, v in sample_data.items():
+                    data[k][i] = v
 
         # assemble
-        length = len(l_cache)
-        self._cache = list(
-            zip(
-                o_cache if o_cache else [None] * length,
-                s_cache if s_cache else [None] * length,
-                y_cache if y_cache else [None] * length,
-                l_cache,
-            )
-        )
+        common_keys = set(data["label"].keys())
+        for d in data.values():
+            common_keys &= set(d.keys())
+
+        print(len(common_keys))
+        self._cache = [{k: d[i] for k, d in data.items()} for i in common_keys]
+        print(len(self._cache))
+
+        # save cache
+        if store_cache:
+            cache_subdir.mkdir(exist_ok=True)
+            for k in data_needed:
+                torch.save(data[k], cache_subdir / f"{k}.pt")
 
     def __getitem__(self, idx):
         if self.precomputed:
-            original, segmented, yolo_data, label = self._cache[idx]
+            sample_data = self._cache[idx]
         else:
-            data = self._get_sample_data(idx)
-            if data is None:
+            sample_data = self._get_sample_data(idx)
+            if sample_data is None:
                 return None, None, None, None
-            original, segmented, yolo_data, label = data
 
         # x_large
-        if self.branch_large == "original":
-            x_large = original
-        else:
-            x_large = segmented
+        x_large = sample_data[self.branch_large]
 
         # x_small
-        if self.branch_small == "original":
-            x_small = original
-        elif self.branch_small == "segmented":
-            x_small = segmented
-        else:
-            patches = yolo_data["patches"]  # type: ignore
-            x_small = self._select_patches(patches)
+        x_small = sample_data[self.branch_small]
 
         # weight
         if self.branch_large_weight == "yolo":
-            weight = yolo_data["global_heatmap"].squeeze(0)  # type: ignore
+            weight = sample_data["yolo_weight"]
         elif self.branch_large_weight == "ratio":
-            weight = self._patches_weights(segmented, self.ratio_patch_size, self.weight_function)
+            weight = self._patches_weights(
+                sample_data["segmented"], self.ratio_patch_size, self.weight_function
+            )
         else:
             weight = torch.empty(0)  # TODO test
 
@@ -230,7 +181,7 @@ class DualInputDataset(Dataset):
         if isinstance(x_small, list):
             x_small = torch.stack(x_small)
 
-        return x_small, x_large, weight, label
+        return x_small, x_large, weight, sample_data["label"]
 
     def __len__(self):
         return len(self._cache) if self.precomputed else len(self.samples)
@@ -356,32 +307,40 @@ class DualInputDataset(Dataset):
 
         return patches
 
-    def _get_sample_data(self, idx, resize=False):
-        img_p, seg_p, yolo_data_p, label = self.samples[idx]
-
-        original = None
-        segmented = None
-        yolo_data = None
-
+    def _get_sample_data(
+        self,
+        idx,
+        keys=["original", "segmented", "yolo_patches", "yolo_weight", "label"],
+        resize=False,
+    ):
         try:
-            # original
-            if self.need_original:
-                original = read_image(img_p)
-            # segmented
-            if self.need_segmented:
-                segmented = read_image(seg_p)
-            # yolo data
-            if self.need_yolo_data:
-                yolo_data = torch.load(yolo_data_p)
+            ret = {}
+            for k in keys:
+                fname = "yolo_data" if "yolo" in k else k
+                fp = self.samples[idx][fname]
+                if k == "label":
+                    ret[k] = self.samples[idx][k]
+                if k == "original":
+                    original = read_image(fp)
+                    if resize:
+                        original = F.resize(original, self.img_size_large)
+                    ret[k] = original
+                if k == "segmented":
+                    segmented = read_image(fp)
+                    if resize:
+                        segmented = F.resize(segmented, self.img_size_small)
+                    ret[k] = segmented
+                yolo_data = None
+                if k == "yolo_patches":
+                    yolo_data = torch.load(fp)
+                    ret[k] = self._select_patches(yolo_data["patches"])
+                if k == "yolo_weight":
+                    yolo_data = torch.load(fp) if yolo_data is None else yolo_data
+                    ret[k] = yolo_data["global_heatmap"].squeeze(0)
+
+            return ret
+
         except Exception as e:
             print("error processing sampling")
             print(f"error: {e}")
             return None
-
-        if resize:
-            if original is not None:
-                original = F.resize(original, self.img_size_large)
-            if segmented is not None:
-                segmented = F.resize(segmented, self.img_size_small)
-
-        return original, segmented, yolo_data, label
