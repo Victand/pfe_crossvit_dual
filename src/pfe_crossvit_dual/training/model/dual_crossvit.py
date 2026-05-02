@@ -1,140 +1,8 @@
 import torch
 import torch.nn as nn
-import sys
-import os
 
-sys.path.append(os.path.abspath(".."))
 from CrossViT.models import crossvit
-from pfe_crossvit_dual.training.model.recording_layers import (
-    RecordingBlock,
-    CrossAttentionBlock,
-)
-
-
-class MultiScaleBlock(nn.Module):
-    def __init__(
-        self,
-        dim,
-        patches,
-        depth,
-        num_heads,
-        mlp_ratio,
-        qkv_bias=False,
-        qk_scale=None,
-        drop=0.0,
-        attn_drop=0.0,
-        drop_path=[0.0],
-        act_layer=nn.GELU,
-        norm_layer=nn.LayerNorm,
-    ):
-        super().__init__()
-
-        num_branches = len(dim)
-        self.num_branches = num_branches
-        # different branch could have different embedding size, the first one is the base
-        self.blocks = nn.ModuleList()
-        for d in range(num_branches):
-            tmp = []
-            for i in range(depth[d]):
-                # NOTE Changed drop with proj_drop (was deprecated) - youenn B
-                # NOTE Changed timm Block with our custom RecordingBlock to record Attention and perform Attention Rollout
-                tmp.append(
-                    RecordingBlock(
-                        dim=dim[d],
-                        num_heads=num_heads[d],
-                        mlp_ratio=mlp_ratio[d],
-                        qkv_bias=qkv_bias,
-                        qk_scale=qk_scale,
-                        proj_drop=drop,
-                        attn_drop=attn_drop,
-                        drop_path=drop_path[i],
-                        norm_layer=norm_layer,
-                    )
-                )
-            if len(tmp) != 0:
-                self.blocks.append(nn.Sequential(*tmp))
-
-        """if len(self.blocks) == 0:
-            self.blocks = None"""
-
-        self.projs = nn.ModuleList()
-        for d in range(num_branches):
-            if dim[d] == dim[(d + 1) % num_branches] and False:
-                tmp = [nn.Identity()]
-            else:
-                tmp = [
-                    norm_layer(dim[d]),
-                    act_layer(),
-                    nn.Linear(dim[d], dim[(d + 1) % num_branches]),
-                ]
-            self.projs.append(nn.Sequential(*tmp))
-
-        self.fusion = nn.ModuleList()
-        for d in range(num_branches):
-            d_ = (d + 1) % num_branches
-            nh = num_heads[d_]
-            if depth[-1] == 0:  # backward capability:
-                self.fusion.append(
-                    CrossAttentionBlock(
-                        dim=dim[d_],
-                        num_heads=nh,
-                        mlp_ratio=mlp_ratio[d],
-                        qkv_bias=qkv_bias,
-                        qk_scale=qk_scale,
-                        drop=drop,
-                        attn_drop=attn_drop,
-                        drop_path=drop_path[-1],
-                        norm_layer=norm_layer,
-                        has_mlp=False,
-                    )
-                )
-            else:
-                tmp = []
-                for _ in range(depth[-1]):
-                    tmp.append(
-                        CrossAttentionBlock(
-                            dim=dim[d_],
-                            num_heads=nh,
-                            mlp_ratio=mlp_ratio[d],
-                            qkv_bias=qkv_bias,
-                            qk_scale=qk_scale,
-                            drop=drop,
-                            attn_drop=attn_drop,
-                            drop_path=drop_path[-1],
-                            norm_layer=norm_layer,
-                            has_mlp=False,
-                        )
-                    )
-                self.fusion.append(nn.Sequential(*tmp))
-
-        self.revert_projs = nn.ModuleList()
-        for d in range(num_branches):
-            if dim[(d + 1) % num_branches] == dim[d] and False:
-                tmp = [nn.Identity()]
-            else:
-                tmp = [
-                    norm_layer(dim[(d + 1) % num_branches]),
-                    act_layer(),
-                    nn.Linear(dim[(d + 1) % num_branches], dim[d]),
-                ]
-            self.revert_projs.append(nn.Sequential(*tmp))
-
-    def forward(self, x):
-        outs_b = [block(x_) for x_, block in zip(x, self.blocks)]
-        # only take the cls token out
-        proj_cls_token = [proj(x[:, 0:1]) for x, proj in zip(outs_b, self.projs)]
-        # cross attention
-        outs = []
-        for i in range(self.num_branches):
-            tmp = torch.cat(
-                (proj_cls_token[i], outs_b[(i + 1) % self.num_branches][:, 1:, ...]),
-                dim=1,
-            )
-            tmp = self.fusion[i](tmp)
-            reverted_proj_cls_token = self.revert_projs[i](tmp[:, 0:1, ...])
-            tmp = torch.cat((reverted_proj_cls_token, outs_b[i][:, 1:, ...]), dim=1)
-            outs.append(tmp)
-        return outs
+from pfe_crossvit_dual.training.model.recording_layers import MultiScaleBlock
 
 
 class DualCrossVit(crossvit.VisionTransformer):
@@ -184,11 +52,8 @@ class DualCrossVit(crossvit.VisionTransformer):
             **kwargs,
         )
         self.kwargs = kwargs
-        num_patches = crossvit._compute_num_patches(img_size, patch_size)
 
         self.patch_size = patch_size
-
-        self.default_weights = [torch.ones((num_patches[i], 1)) for i in range(len(self.img_size))]
 
         total_depth = sum([sum(x[-2:]) for x in depth])
         dpr = [
@@ -201,7 +66,6 @@ class DualCrossVit(crossvit.VisionTransformer):
             dpr_ = dpr[dpr_ptr : dpr_ptr + curr_depth]
             blk = MultiScaleBlock(
                 embed_dim,
-                num_patches,
                 block_cfg,
                 num_heads=num_heads,
                 mlp_ratio=mlp_ratio,
@@ -284,25 +148,20 @@ class DualCrossVit(crossvit.VisionTransformer):
         out = [x[:, 0] for x in xs]
         return out
 
-    def forward(self, x_small, x_large, weights=None, alpha=None):  # pyright: ignore[reportIncompatibleMethodOverride]
+    def forward(self, x_small, x_large, weights, alpha):  # pyright: ignore[reportIncompatibleMethodOverride]
         """
         alpha: Tenseur de poids [Fond, Fleur, Feuille, Tige]
         Ex: torch.tensor([0.1, 1.0, 1.0, 5.0])
         """
-        # Si on a des poids multi-canaux (B, 4, 14, 14), on les mixe
-        if weights is not None and weights.numel() > 0:
-            if weights.dim() == 4:  # Format (B, 4, 14, 14)
-                if alpha is None:
-                    # Stratégie par défaut si on oublie alpha
-                    alpha = torch.tensor([0.1, 1.0, 1.0, 1.0]).to(weights.device)
+        B, C, H, W = x_small.shape
 
-                # Mixage des canaux : somme pondérée
-                # On multiplie chaque canal (Fleur, Tige...) par son importance alpha
+        if weights is not None:
+            if weights.shape[1] == 1:
+                weights = weights.view(B, -1, 1)
+            else:
+                # Mixage de la Heatmap avec Alpha
                 weights = (weights * alpha.view(1, -1, 1, 1)).sum(dim=1)
-                # On aplatit pour le ViT : (B, 196, 1)
-                weights = weights.view(weights.shape[0], -1, 1)
-        else:
-            weights = None
+                weights = weights.view(B, -1, 1)
 
         xs = self.forward_features(x_small, x_large, weights)
         ce_logits = [self.head[i](x) for i, x in enumerate(xs)]  # pyright: ignore[reportIndexIssue]

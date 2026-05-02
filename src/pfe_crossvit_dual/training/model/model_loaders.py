@@ -1,12 +1,12 @@
 import torch
 
-from pfe_crossvit_dual.training.model.dual_crossvit_ratio import DualCrossVitRatio
+from pfe_crossvit_dual.training.model.dual_crossvit import DualCrossVit
 from pfe_crossvit_dual.training.model.dual_crossvit_yolo import DualCrossVitYolo
 from pfe_crossvit_dual.training.model.crossvit_kwargs import CROSSVIT_KWARGS_MAP
 
 
 DUALCROSSVIT_MAP = {
-    "dual_crossvit_ratio": DualCrossVitRatio,
+    "dual_crossvit": DualCrossVit,
     "dual_crossvit_yolo": DualCrossVitYolo,
 }
 

@@ -75,7 +75,7 @@ class DualInputDataset(Dataset):
         self.num_patches = yolo_patch_count
         self.patch_quotas = yolo_patch_quotas
         # samples
-        self.samples = []
+        self.samples = {}
         self._index_files(img_paths)
         # precomputing
         self.precomputed = precompute
@@ -89,7 +89,7 @@ class DualInputDataset(Dataset):
             yolo_data = p.with_name(f"{p.stem}_weights.pt")
             label = self.label_to_id[str(p.parent.name)]
 
-            self.samples.append(
+            self.samples[original_img.stem] = (
                 {
                     "original": original_img,
                     "segmented": segmented_img,
@@ -109,7 +109,7 @@ class DualInputDataset(Dataset):
 
     def _precompute_all(self, use_cache=True, store_cache=True):
         """precompute all io tasks and expensive deterministic tasks (ie not random transforms)"""
-        dataset = self.samples[0]["original"].parent.parent.parent.name
+        dataset = list(self.samples.values())[0]["original"].parent.parent.parent.name
         phase = "train" if self.is_train else "val"
         cache_subdir = self.cache_dir / f"precomputed_{dataset}_{phase}"
 
@@ -128,21 +128,19 @@ class DualInputDataset(Dataset):
         # compute not cached data
         if data_needed:
             print(f"precomputing {data_needed}")
-            for i in tqdm(range(len(self.samples)), desc="precomputing data"):
-                sample_data = self._get_sample_data(i, keys=data_needed, resize=True)
+            for img_id in tqdm(self.samples, desc="precomputing data"):
+                sample_data = self._get_sample_data(img_id, keys=data_needed, resize=True)
                 if sample_data is None:
                     continue
                 for k, v in sample_data.items():
-                    data[k][i] = v
+                    data[k][img_id] = v
 
         # assemble
         common_keys = set(data["label"].keys())
         for d in data.values():
             common_keys &= set(d.keys())
 
-        print(len(common_keys))
         self._cache = [{k: d[i] for k, d in data.items()} for i in common_keys]
-        print(len(self._cache))
 
         # save cache
         if store_cache:

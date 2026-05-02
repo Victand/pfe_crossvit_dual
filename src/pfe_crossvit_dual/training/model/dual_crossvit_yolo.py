@@ -143,27 +143,17 @@ class DualCrossVitYolo(crossvit.VisionTransformer):
         xs = [self.norm[i](x) for i, x in enumerate(xs)]
         return [x[:, 0] for x in xs]
 
-    def forward(self, x_small, x_large, weights=None, alpha=None):  # pyright: ignore[reportIncompatibleMethodOverride]
+    def forward(self, x_small, x_large, weights, alpha):  # pyright: ignore[reportIncompatibleMethodOverride]
+
         B, N, C, H, W = x_small.shape  # batch, class_channels, color_channels, height, with
 
-        # 1. Mixage de la Heatmap avec Alpha
-        if weights is not None and weights.numel() > 0:
-            # Sécurité : On s'adapte au nombre de canaux réels du .pt
-            num_channels = weights.shape[1]
-
-            if alpha is None:
-                # Défaut intelligent : Fond (dernier canal) à 0.1, le reste à 1.0
-                curr_alpha = torch.ones(num_channels).to(weights.device)
-                curr_alpha[-1] = 0.1
+        if weights is not None:
+            if weights.shape[1] == 1:
+                weights = weights.view(B, -1, 1)
             else:
-                # On s'assure que alpha a la bonne taille pour ce fichier .pt
-                curr_alpha = alpha[:num_channels].to(weights.device)
-
-            # Somme pondérée des canaux : (B, C, 64, 64) * (1, C, 1, 1) -> (B, 64, 64)
-            weights = (weights * curr_alpha.view(1, -1, 1, 1)).sum(dim=1)
-            weights = weights.view(B, -1, 1)
-        else:
-            weights = None
+                # Mixage de la Heatmap avec Alpha
+                weights = (weights * alpha.view(1, -1, 1, 1)).sum(dim=1)
+                weights = weights.view(B, -1, 1)
 
         # 2. Aplatissement des patchs pour l'encodeur
         x_small = x_small.view(B * N, C, H, W)

@@ -88,9 +88,12 @@ Tous les paramètres (entrainement, dataset, modèle) sont définis dans `config
 
 **Modèles**:
 
-- **DualCrossVitYolo**: prends en entrée l'image originale (branche large), des patches d'organe spécifiques produit par YOLOv7_ag, le masque de ségmentation ded la plante.
+WIP 
 
-- **DualCrossVitRatio**: prends en entrée l'image originale (branche large), l'image segmentée (branche small), et les poids par patchs définis par une fonction dépendant du ratio de plante présente sur le patch.
+- **DualCrossVit**: modèle à deux branches large (image originale ou segemntée) et small (image originale ou segemntée), possibilité de pondérer la branche large avec des poids définis par ratios de plante ou en superposant le masque produit par yolo avec un coefficient pour chaque classe.
+
+- **DualCrossVitYolo**: même modèle qu'au dessus sauf pour la branche small qui prend en entrée une série de patchs produit par yolo montrant des portions spécifiques de la plante (tige, feuille, fleur, ...) avec possibilité de quotas par classe.
+
 
 #### Lancement
 
