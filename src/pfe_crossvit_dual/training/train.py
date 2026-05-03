@@ -48,14 +48,20 @@ def train(
     criterion,
     alphas,
     id_to_label,
+    lr,
     epochs,
     patience,
+    freeze,
+    unfreeze_schedule,
     device,
     save_path,
 ):
     log_path = os.path.join(save_path, "training_logs.txt")
     img_dir = os.path.join(save_path, "images")
     os.makedirs(img_dir, exist_ok=True)
+
+    if optimizer is None:
+        optimizer = torch.optim.AdamW(model.parameters(),lr=lr)
 
     start_epoch = 0
     best_f1 = 0.0
@@ -70,10 +76,25 @@ def train(
         "val_f1": [],
     }
 
+    if freeze:
+        print(f"unfreezing stage: {0}")
+        model.set_unfreeze_stage(0)
+
     print(f"Lancement de l'entraînement sur {device}...")
 
     for epoch in range(start_epoch, epochs):
         model.train()
+
+        if freeze:
+            stage = -1
+            for k,v in unfreeze_schedule.items():
+                if v == epoch +1:
+                    stage = k
+            if stage >= 0:
+                print(f"unfreezing stage: {stage}")
+                model.set_unfreeze_stage(stage)
+                optimizer = torch.optim.AdamW(filter(lambda p: p.requires_grad, model.parameters()),lr=lr)
+
         train_loss = 0.0
         pbar = tqdm(train_loader, desc=f"[{epoch + 1}/{epochs}] train")
 
@@ -125,7 +146,7 @@ def train(
             f.write("-" * 50 + "\n")
 
         # Sauvegarde du diagnostic visuel
-        x_s, x_l, w, lbl = next(iter(train_loader))
+        x_s, x_l, w, lbl = next(iter(val_loader))
         diagnostic_fp = os.path.join(img_dir, f"diag_epoch_{epoch + 1}.png")
         debug_full_diagnostic(
             x_s.to(device),
@@ -146,10 +167,10 @@ def train(
                 "epoch": epoch + 1,
                 "model_state_dict": model.state_dict(),
                 "optimizer_state_dict": optimizer.state_dict(),
-                "val_acc": val_acc,
+                "val_f1": val_f1,
                 "alpha_used": alphas.cpu(),
             }
-            torch.save(checkpoint, save_path / "best_model_vit.pth")
+            torch.save(checkpoint, save_path / "best_model.pth")
             print(" > Nouveau record ! Modèle sauvegardé.\n")
             with open(log_path, "a") as f:
                 f.write(

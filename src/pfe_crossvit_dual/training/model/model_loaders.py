@@ -11,17 +11,21 @@ DUALCROSSVIT_MAP = {
 }
 
 
-def load_training(model_fp: str, model, optimizer):
+def load_training(model_fp: str, model, lr):
     print(f" > Resuming training of model at path: {model_fp}")
 
+    # model
     checkpoint = torch.load(model_fp)
-
     model.load_state_dict(checkpoint["model_state_dict"])
+
+    # optimizer
+    optimizer = torch.optim.AdamW(filter(lambda p: p.requires_grad, model.parameters()),lr=lr)
     optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
     start_epoch = checkpoint["epoch"]
     best_acc = checkpoint.get("val_acc", 0.0)
 
     print(f" > Resuming at epoch {start_epoch + 1} with accuracy of {best_acc:.2f}%")
+    return model, optimizer
 
 
 def instanciate_dualcrossvit(crossvit, model_name, device, **model_kwargs):

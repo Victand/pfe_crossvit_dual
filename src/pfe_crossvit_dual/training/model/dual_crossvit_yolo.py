@@ -76,7 +76,45 @@ class DualCrossVitYolo(crossvit.VisionTransformer):
             dpr_ptr += curr_depth
             self.blocks.append(blk)
 
-    def freeze(self): ...
+    def freeze_all(self):
+        for param in self.parameters():
+            param.requires_grad = False
+
+    def unfreeze_stage(self, stage):
+        # Heads
+        if stage >= 0:
+            for head in self.head: # type: ignore
+                for p in head.parameters():
+                    p.requires_grad = True
+
+        # Norm layers
+        if stage >=1:
+            for n in self.norm:
+                for p in n.parameters():
+                    p.requires_grad = True
+
+        # Fusion blocks 
+        if stage >= 2:
+            for blk in self.blocks:
+                for p in blk.parameters():
+                    p.requires_grad = True
+
+        # CLS tokens + positional embeddings
+        if stage >= 3:
+            for p in self.cls_token:
+                p.requires_grad = True
+            for p in self.pos_embed:
+                p.requires_grad = True
+
+        # Patch embeddings (lowest-level features)
+        if stage >= 4:
+            for pe in self.patch_embed:
+                for p in pe.parameters():
+                    p.requires_grad = True
+    
+    def set_unfreeze_stage(self, stage:int):
+        self.freeze_all()
+        self.unfreeze_stage(stage)
 
     def forward_features(self, x_small, x_large, weights, num_patches):  # pyright: ignore[reportIncompatibleMethodOverride]
         B_large = x_large.shape[0]

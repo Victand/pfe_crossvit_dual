@@ -49,4 +49,4 @@ def threshold_(x):
 
 def parabole_beta(x, k=3):
     """Parabole de beta avec k=3 - proche d'une gaussienne mais plus legere en calculs"""
-    return (4 * x * (1 - x)) ** k
+    return (4 * x * (1.2 - x)) ** k

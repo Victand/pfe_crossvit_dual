@@ -26,7 +26,7 @@ IMGNET_STD = [0.229, 0.224, 0.225]
 
 SBranchType = Literal["original", "segmented", "yolo_patches"]
 LBranchType = Literal["original", "segmented", "yolo_patches"]
-LBranchWeightType = Literal["ratio", "yolo"] | None
+LBranchWeightType = Literal["ratio", "yolo_masks"] | None
 
 
 class DualInputDataset(Dataset):
@@ -66,7 +66,7 @@ class DualInputDataset(Dataset):
             or self.branch_small == "segmented"
             or self.branch_large_weight == "ratio"
         )
-        self.need_yolo_weight = self.branch_large_weight == "yolo"
+        self.need_yolo_weight = self.branch_large_weight == "yolo_masks"
         self.need_yolo_patches = self.branch_small == "yolo_patches"
 
         # ratio weights
@@ -101,10 +101,10 @@ class DualInputDataset(Dataset):
     def _load_cache(self, cache_fp):
         try:
             cache = torch.load(cache_fp, weights_only=False)
-            print(f"loaded cache {cache_fp.name} successfully.")
+            print(f"successfully loaded cache {cache_fp.parent.name} {cache_fp.name}.")
             return cache
         except Exception:
-            print(f"loading cache  {cache_fp.name} failed.")
+            print(f"failed loading cache {cache_fp.parent.name} {cache_fp.name}.")
             return {}
 
     def _precompute_all(self, use_cache=True, store_cache=True):
@@ -163,7 +163,7 @@ class DualInputDataset(Dataset):
         x_small = sample_data[self.branch_small]
 
         # weight
-        if self.branch_large_weight == "yolo":
+        if self.branch_large_weight == "yolo_masks":
             weight = sample_data["yolo_weight"]
         elif self.branch_large_weight == "ratio":
             weight = self._patches_weights(
@@ -201,7 +201,7 @@ class DualInputDataset(Dataset):
             params_w = scale_crop_params(*params_l, x_large.shape[-2:], weight.shape[-2:])
             x_large = F.resized_crop(x_large, *params_l, self.img_size_large)
             weight = F.resized_crop(
-                weight, *params_w, weight.shape[-2:], tf.InterpolationMode.NEAREST
+                weight, *params_w, weight.shape[-2:], tf.InterpolationMode.BILINEAR
             )
             x_small = apply_to_small(lambda x: F.resized_crop(x, *params_s, self.img_size_small))
 
@@ -229,7 +229,7 @@ class DualInputDataset(Dataset):
                 translations_w,  # type: ignore
                 scale,
                 shear,  # type: ignore
-                interpolation=tf.InterpolationMode.NEAREST,
+                interpolation=tf.InterpolationMode.BILINEAR,
             )
 
         if "color_jitter" in self.transforms and self.is_train:

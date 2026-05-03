@@ -1,6 +1,6 @@
 import yaml
 import torch
-import torch.optim as optim
+
 import torch.nn as nn
 import os
 import argparse
@@ -82,12 +82,14 @@ def training_pipeline(config):
         **config["model"],
         num_classes=len(id_to_label),
     )
-    optimizer = optim.Adam(params=model.parameters(), lr=config["lr"], weight_decay=1e-4)
+    
     criterion = nn.CrossEntropyLoss()
     alphas = torch.tensor(config["alphas"]).to(device)
 
     if config["resume_path"] and os.path.isfile(config["resume_path"]):
-        load_training(config["resume_path"], model, optimizer)
+        model, optimizer = load_training(config["resume_path"], model, config["lr"])
+    else:
+        optimizer = None
 
     # logs
     init_logs(save_path, config, config["resume_path"])
@@ -102,8 +104,11 @@ def training_pipeline(config):
         criterion,
         alphas,
         id_to_label,
+        config["lr"],
         config["epochs"],
         config["patience"],
+        config["freeze"],
+        config["unfreeze_schedule"],
         device,
         save_path,
     )
