@@ -7,6 +7,15 @@ import gc
 from pfe_crossvit_dual.training.utils.diagnostic import debug_full_diagnostic
 
 
+LR_FACTORS = {
+    "head": 1.0,
+    "norm": 0.3,
+    "fusion_blocks": 0.1,
+    "positional": 0.05,
+    "patch_embed": 0.02,
+}
+
+
 def validate(model, loader, criterion, alphas, device):
     model.eval()
     val_loss = 0.0
@@ -40,6 +49,47 @@ def validate(model, loader, criterion, alphas, device):
     return avg_loss, acc, prec, rec, f1
 
 
+def build_optimizer(model, base_lr=3e-4):
+    param_groups = []
+    # Head
+    param_groups.append(
+        {
+            "params": [p for head in model.head for p in head.parameters() if p.requires_grad],
+            "lr": base_lr * LR_FACTORS["head"],
+        }
+    )
+    # Norm
+    param_groups.append(
+        {
+            "params": [p for n in model.norm for p in n.parameters() if p.requires_grad],
+            "lr": base_lr * LR_FACTORS["norm"],
+        }
+    )
+    # Fusion blocks
+    param_groups.append(
+        {
+            "params": [p for blk in model.blocks for p in blk.parameters() if p.requires_grad],
+            "lr": base_lr * LR_FACTORS["fusion_blocks"],
+        }
+    )
+    # Positional stuff
+    param_groups.append(
+        {
+            "params": [p for p in model.pos_embed if p.requires_grad]
+            + [p for p in model.cls_token if p.requires_grad],
+            "lr": base_lr * LR_FACTORS["positional"],
+        }
+    )
+    # Patch embedding
+    param_groups.append(
+        {
+            "params": [p for pe in model.patch_embed for p in pe.parameters() if p.requires_grad],
+            "lr": base_lr * LR_FACTORS["patch_embed"],
+        }
+    )
+    return torch.optim.AdamW(param_groups, weight_decay=1e-4)
+
+
 def train(
     model,
     train_loader,
@@ -48,7 +98,7 @@ def train(
     criterion,
     alphas,
     id_to_label,
-    lr,
+    base_lr,
     epochs,
     patience,
     freeze,
@@ -61,7 +111,7 @@ def train(
     os.makedirs(img_dir, exist_ok=True)
 
     if optimizer is None:
-        optimizer = torch.optim.AdamW(model.parameters(),lr=lr)
+        optimizer = build_optimizer(model, base_lr)
 
     start_epoch = 0
     best_f1 = 0.0
@@ -87,13 +137,13 @@ def train(
 
         if freeze:
             stage = -1
-            for k,v in unfreeze_schedule.items():
-                if v == epoch +1:
+            for k, v in unfreeze_schedule.items():
+                if v == epoch + 1:
                     stage = k
             if stage >= 0:
                 print(f"unfreezing stage: {stage}")
                 model.set_unfreeze_stage(stage)
-                optimizer = torch.optim.AdamW(filter(lambda p: p.requires_grad, model.parameters()),lr=lr)
+                optimizer = build_optimizer(model, base_lr)
 
         train_loss = 0.0
         pbar = tqdm(train_loader, desc=f"[{epoch + 1}/{epochs}] train")

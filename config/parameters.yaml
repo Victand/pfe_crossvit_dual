@@ -2,7 +2,7 @@
 
 training:
   resume_path: null # path to previous run, "null" for new run
-  lr: 0.0001
+  lr: 0.0003
   epochs: 50
   patience: 10
   batch_size: 8

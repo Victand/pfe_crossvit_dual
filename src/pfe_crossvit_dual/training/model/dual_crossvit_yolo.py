@@ -83,17 +83,17 @@ class DualCrossVitYolo(crossvit.VisionTransformer):
     def unfreeze_stage(self, stage):
         # Heads
         if stage >= 0:
-            for head in self.head: # type: ignore
+            for head in self.head:  # type: ignore
                 for p in head.parameters():
                     p.requires_grad = True
 
         # Norm layers
-        if stage >=1:
+        if stage >= 1:
             for n in self.norm:
                 for p in n.parameters():
                     p.requires_grad = True
 
-        # Fusion blocks 
+        # Fusion blocks
         if stage >= 2:
             for blk in self.blocks:
                 for p in blk.parameters():
@@ -111,8 +111,8 @@ class DualCrossVitYolo(crossvit.VisionTransformer):
             for pe in self.patch_embed:
                 for p in pe.parameters():
                     p.requires_grad = True
-    
-    def set_unfreeze_stage(self, stage:int):
+
+    def set_unfreeze_stage(self, stage: int):
         self.freeze_all()
         self.unfreeze_stage(stage)
 

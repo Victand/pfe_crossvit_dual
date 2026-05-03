@@ -19,7 +19,7 @@ def load_training(model_fp: str, model, lr):
     model.load_state_dict(checkpoint["model_state_dict"])
 
     # optimizer
-    optimizer = torch.optim.AdamW(filter(lambda p: p.requires_grad, model.parameters()),lr=lr)
+    optimizer = torch.optim.AdamW(filter(lambda p: p.requires_grad, model.parameters()), lr=lr)
     optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
     start_epoch = checkpoint["epoch"]
     best_acc = checkpoint.get("val_acc", 0.0)

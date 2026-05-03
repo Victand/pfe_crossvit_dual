@@ -82,7 +82,7 @@ def training_pipeline(config):
         **config["model"],
         num_classes=len(id_to_label),
     )
-    
+
     criterion = nn.CrossEntropyLoss()
     alphas = torch.tensor(config["alphas"]).to(device)
 

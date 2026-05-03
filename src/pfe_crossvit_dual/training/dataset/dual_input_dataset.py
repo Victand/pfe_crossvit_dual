@@ -89,14 +89,12 @@ class DualInputDataset(Dataset):
             yolo_data = p.with_name(f"{p.stem}_weights.pt")
             label = self.label_to_id[str(p.parent.name)]
 
-            self.samples[original_img.stem] = (
-                {
-                    "original": original_img,
-                    "segmented": segmented_img,
-                    "yolo_data": yolo_data,
-                    "label": label,
-                }
-            )
+            self.samples[original_img.stem] = {
+                "original": original_img,
+                "segmented": segmented_img,
+                "yolo_data": yolo_data,
+                "label": label,
+            }
 
     def _load_cache(self, cache_fp):
         try:
