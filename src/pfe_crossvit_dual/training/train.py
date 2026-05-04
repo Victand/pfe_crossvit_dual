@@ -9,10 +9,10 @@ from pfe_crossvit_dual.training.utils.diagnostic import debug_full_diagnostic
 
 LR_FACTORS = {
     "head": 1.0,
-    "norm": 0.3,
-    "fusion_blocks": 0.1,
-    "positional": 0.05,
-    "patch_embed": 0.02,
+    "norm": 0.5,
+    "fusion_blocks": 0.3,
+    "positional": 0.1,
+    "patch_embed": 0.05,
 }
 
 
@@ -49,27 +49,27 @@ def validate(model, loader, criterion, alphas, device):
     return avg_loss, acc, prec, rec, f1
 
 
-def build_optimizer(model, base_lr=3e-4):
+def build_optimizer(model, base_lr=3e-4, lr_factors={0: 1, 1: 1, 2: 1, 3: 1, 4: 1}):
     param_groups = []
     # Head
     param_groups.append(
         {
             "params": [p for head in model.head for p in head.parameters() if p.requires_grad],
-            "lr": base_lr * LR_FACTORS["head"],
+            "lr": base_lr * lr_factors[0],
         }
     )
     # Norm
     param_groups.append(
         {
             "params": [p for n in model.norm for p in n.parameters() if p.requires_grad],
-            "lr": base_lr * LR_FACTORS["norm"],
+            "lr": base_lr * lr_factors[1],
         }
     )
     # Fusion blocks
     param_groups.append(
         {
             "params": [p for blk in model.blocks for p in blk.parameters() if p.requires_grad],
-            "lr": base_lr * LR_FACTORS["fusion_blocks"],
+            "lr": base_lr * lr_factors[2],
         }
     )
     # Positional stuff
@@ -77,14 +77,14 @@ def build_optimizer(model, base_lr=3e-4):
         {
             "params": [p for p in model.pos_embed if p.requires_grad]
             + [p for p in model.cls_token if p.requires_grad],
-            "lr": base_lr * LR_FACTORS["positional"],
+            "lr": base_lr * lr_factors[3],
         }
     )
     # Patch embedding
     param_groups.append(
         {
             "params": [p for pe in model.patch_embed for p in pe.parameters() if p.requires_grad],
-            "lr": base_lr * LR_FACTORS["patch_embed"],
+            "lr": base_lr * lr_factors[4],
         }
     )
     return torch.optim.AdamW(param_groups, weight_decay=1e-4)
@@ -99,6 +99,7 @@ def train(
     alphas,
     id_to_label,
     base_lr,
+    lr_factors,
     epochs,
     patience,
     freeze,
@@ -111,7 +112,7 @@ def train(
     os.makedirs(img_dir, exist_ok=True)
 
     if optimizer is None:
-        optimizer = build_optimizer(model, base_lr)
+        optimizer = build_optimizer(model, base_lr, lr_factors)
 
     start_epoch = 0
     best_f1 = 0.0
@@ -142,8 +143,9 @@ def train(
                     stage = k
             if stage >= 0:
                 print(f"unfreezing stage: {stage}")
+                no_improve = 0
                 model.set_unfreeze_stage(stage)
-                optimizer = build_optimizer(model, base_lr)
+                optimizer = build_optimizer(model, base_lr, lr_factors)
 
         train_loss = 0.0
         pbar = tqdm(train_loader, desc=f"[{epoch + 1}/{epochs}] train")

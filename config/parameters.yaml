@@ -2,12 +2,13 @@
 
 training:
   resume_path: null # path to previous run, "null" for new run
-  lr: 0.0003
+  lr: 0.0007
+  lr_factors: {0: 1.0, 1: 0.5, 2: 0.3, 3: 0.1, 4: 0.05} # multiplying factor of LR for 0: heads, 1: norm, 2: blocks, 3: cls tok + pos embed, 4: patch embed
   epochs: 50
-  patience: 10
-  batch_size: 8
+  patience: 8
+  batch_size: 32
   freeze: True
-  unfreeze_schedule: {0: 0, 1: 5, 2: 6, 3: 15, 4: 15} # 0: heads, 1: norm, 2: blocks, 3: cls tok + pos embed, 4: patch embed (ALL)
+  unfreeze_schedule: {0: 0, 1: 5, 2: 8, 3: 20, 4: 20} # 0: heads, 1: norm, 2: blocks, 3: cls tok + pos embed, 4: patch embed (ALL)
 
   alphas: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.1] # [leaf, root, stem, flower, fruit, seed, FOND]
 
@@ -25,15 +26,15 @@ training:
 
     # model input
     branch_small: "yolo_patches" # "yolo_patches", "original", "segmented"
-    branch_large: "segmented" # "original", "segmented"
-    branch_large_weight: "ratio" # "yolo_masks", "ratio", null
+    branch_large: "orign" # "original", "segmented"
+    branch_large_weight: "yolo_masks" # "yolo_masks", "ratio", null
 
     # training transforms
     transforms: ["random_affine", 
                  "random_hflip", 
                  "random_grayscale", 
                  "color_jitter", 
-                 "random_erase"] #["random_crop", "random_hflip", "random_grayscale", "color_jitter", "gaussian_blur", "random_affine", "random_erase"]
+                 "random_erase"] # all transforms in 'dataset/dual_input_dataset.py' > TransformType
 
     # when using ratio weights
     ratio_weight_function: "parabole" # function applied to plant ratio to define weight of patch 
