@@ -28,6 +28,8 @@ SBranchType = Literal["original", "segmented", "yolo_patches"]
 LBranchType = Literal["original", "segmented", "yolo_patches"]
 LBranchWeightType = Literal["ratio", "yolo_masks"] | None
 
+TransformType = Literal["random_crop", "random_hflip", "random_affine", "color_jitter", "random_grayscale", "gaussian_blur", "random_erasing"]
+
 
 class DualInputDataset(Dataset):
     def __init__(
@@ -41,7 +43,7 @@ class DualInputDataset(Dataset):
         branch_large_weight: LBranchWeightType = "ratio",
         ratio_patch_size=32,
         ratio_weight_function=linear_,
-        transforms=[],
+        transforms: list[TransformType] =[],
         precompute=False,
         use_cache=False,
         store_cache=False,
@@ -201,7 +203,8 @@ class DualInputDataset(Dataset):
             weight = F.resized_crop(
                 weight, *params_w, weight.shape[-2:], tf.InterpolationMode.BILINEAR
             )
-            x_small = apply_to_small(lambda x: F.resized_crop(x, *params_s, self.img_size_small))
+            if not isinstance(x_small, list): # don't apply to yolo patches
+                x_small = apply_to_small(lambda x: F.resized_crop(x, *params_s, self.img_size_small))
 
         if "random_hflip" in self.transforms and self.is_train:
             if random.random() < 0.5:
@@ -220,7 +223,8 @@ class DualInputDataset(Dataset):
                 translations_l, self.img_size_large, weight.shape[-2:]
             )
             x_large = F.affine(x_large, angle, translations_l, scale, shear)  # type: ignore
-            x_small = apply_to_small(lambda x: F.affine(x, angle, translations_s, scale, shear))  # type: ignore
+            if not isinstance(x_small, list): # dont apply to yolo patches
+                x_small = apply_to_small(lambda x: F.affine(x, angle, translations_s, scale, shear))  # type: ignore
             weight = F.affine(
                 weight,
                 angle,
@@ -246,7 +250,7 @@ class DualInputDataset(Dataset):
             x_small = apply_to_small(lambda x: F.gaussian_blur(x, 3, sigma))  # type: ignore
 
         if "random_erasing" in self.transforms and self.is_train:
-            re = tf.RandomErasing(0.2)
+            re = tf.RandomErasing(0.3)
             x_large = re(x_large)
             x_small = apply_to_small(lambda x: re(x))
 
