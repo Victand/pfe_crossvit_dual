@@ -28,7 +28,15 @@ SBranchType = Literal["original", "segmented", "yolo_patches"]
 LBranchType = Literal["original", "segmented", "yolo_patches"]
 LBranchWeightType = Literal["ratio", "yolo_masks"] | None
 
-TransformType = Literal["random_crop", "random_hflip", "random_affine", "color_jitter", "random_grayscale", "gaussian_blur", "random_erasing"]
+TransformType = Literal[
+    "random_crop",
+    "random_hflip",
+    "random_affine",
+    "color_jitter",
+    "random_grayscale",
+    "gaussian_blur",
+    "random_erasing",
+]
 
 
 class DualInputDataset(Dataset):
@@ -43,7 +51,7 @@ class DualInputDataset(Dataset):
         branch_large_weight: LBranchWeightType = "ratio",
         ratio_patch_size=32,
         ratio_weight_function=linear_,
-        transforms: list[TransformType] =[],
+        transforms: list[TransformType] = [],
         precompute=False,
         use_cache=False,
         store_cache=False,
@@ -62,6 +70,12 @@ class DualInputDataset(Dataset):
         self.branch_large_weight = branch_large_weight
         self.transforms = transforms
 
+        # ratio weights
+        self.weight_function = ratio_weight_function
+        # yolo weights
+        self.num_patches = yolo_patch_count
+        self.patch_quotas = yolo_patch_quotas
+
         self.need_original = self.branch_large == "original" or self.branch_small == "original"
         self.need_segmented = (
             self.branch_large == "segmented"
@@ -71,20 +85,22 @@ class DualInputDataset(Dataset):
         self.need_yolo_weight = self.branch_large_weight == "yolo_masks"
         self.need_yolo_patches = self.branch_small == "yolo_patches"
 
-        # ratio weights
-        self.weight_function = ratio_weight_function
-        # yolo weights
-        self.num_patches = yolo_patch_count
-        self.patch_quotas = yolo_patch_quotas
+        self.original_size = (
+            self.img_size_large if self.branch_large == "original" else self.img_size_small
+        )
+        self.segmented_size = (
+            self.img_size_large if self.branch_large == "original" else self.img_size_small
+        )
         # samples
-        self.samples = {}
         self._index_files(img_paths)
+
         # precomputing
         self.precomputed = precompute
         if precompute:
             self._precompute_all(use_cache, store_cache)
 
     def _index_files(self, original_img_paths: list[Path]):
+        self.samples = {}
         for p in original_img_paths:
             original_img = p
             segmented_img = p.parent.parent.parent / "segmented" / p.parent.name / p.name
@@ -143,7 +159,7 @@ class DualInputDataset(Dataset):
         self._cache = [{k: d[i] for k, d in data.items()} for i in common_keys]
 
         # save cache
-        if store_cache:
+        if data_needed and store_cache:
             cache_subdir.mkdir(exist_ok=True)
             for k in data_needed:
                 torch.save(data[k], cache_subdir / f"{k}.pt")
@@ -203,8 +219,10 @@ class DualInputDataset(Dataset):
             weight = F.resized_crop(
                 weight, *params_w, weight.shape[-2:], tf.InterpolationMode.BILINEAR
             )
-            if not isinstance(x_small, list): # don't apply to yolo patches
-                x_small = apply_to_small(lambda x: F.resized_crop(x, *params_s, self.img_size_small))
+            if not isinstance(x_small, list):  # don't apply to yolo patches
+                x_small = apply_to_small(
+                    lambda x: F.resized_crop(x, *params_s, self.img_size_small)
+                )
 
         if "random_hflip" in self.transforms and self.is_train:
             if random.random() < 0.5:
@@ -223,7 +241,7 @@ class DualInputDataset(Dataset):
                 translations_l, self.img_size_large, weight.shape[-2:]
             )
             x_large = F.affine(x_large, angle, translations_l, scale, shear)  # type: ignore
-            if not isinstance(x_small, list): # dont apply to yolo patches
+            if not isinstance(x_small, list):  # dont apply to yolo patches
                 x_small = apply_to_small(lambda x: F.affine(x, angle, translations_s, scale, shear))  # type: ignore
             weight = F.affine(
                 weight,
@@ -323,12 +341,12 @@ class DualInputDataset(Dataset):
                 if k == "original":
                     original = read_image(fp)
                     if resize:
-                        original = F.resize(original, self.img_size_large)
+                        original = F.resize(original, self.original_size)
                     ret[k] = original
                 if k == "segmented":
                     segmented = read_image(fp)
                     if resize:
-                        segmented = F.resize(segmented, self.img_size_small)
+                        segmented = F.resize(segmented, self.segmented_size)
                     ret[k] = segmented
                 yolo_data = None
                 if k == "yolo_patches":

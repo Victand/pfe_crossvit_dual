@@ -26,7 +26,7 @@ training:
 
     # model input
     branch_small: "yolo_patches" # "yolo_patches", "original", "segmented"
-    branch_large: "orign" # "original", "segmented"
+    branch_large: "original" # "original", "segmented"
     branch_large_weight: "yolo_masks" # "yolo_masks", "ratio", null
 
     # training transforms

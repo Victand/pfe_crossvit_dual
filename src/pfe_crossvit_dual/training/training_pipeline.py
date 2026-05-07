@@ -105,6 +105,7 @@ def training_pipeline(config):
         alphas,
         id_to_label,
         config["lr"],
+        config["lr_factors"],
         config["epochs"],
         config["patience"],
         config["freeze"],
