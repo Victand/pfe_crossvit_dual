@@ -1,3 +1,7 @@
+## KAN
+
+Ajout de couches KAN et test de plusieurs configurations avec KAN.
+
 
 # Projet PFE : Détection et Classification (YOLO + DualCrossViT)
 

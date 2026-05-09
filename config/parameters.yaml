@@ -17,6 +17,7 @@ training:
     crossvit: "crossvit_15_224" # all crossvit in 'model/crossvit_kwargs.py' > CROSSVIT_KWARGS_MAP
     drop_rate: 0.0
 
+  kan_mode: "head" # "none", "head", "bottleneck", "ffn", "head+bottleneck"
 
   dataset: 
     # data
