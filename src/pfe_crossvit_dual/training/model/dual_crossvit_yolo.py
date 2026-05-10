@@ -23,12 +23,8 @@ import torch.nn as nn
 from CrossViT.models import crossvit
 from pfe_crossvit_dual.training.model.recording_layers import MultiScaleBlock
 
-try:
-    from efficient_kan import KANLinear
-    _KAN_AVAILABLE = True
-except ImportError:
-    _KAN_AVAILABLE = False
-    KANLinear = None  # type: ignore[assignment,misc]
+from pfe_crossvit_dual.training.model.kan_linear import KANLinear
+
 
 
 # ---------------------------------------------------------------------------
