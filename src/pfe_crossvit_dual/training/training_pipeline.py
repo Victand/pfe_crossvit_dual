@@ -69,7 +69,6 @@ def training_pipeline(config):
     print("Loading data...")
     img_size = CROSSVIT_KWARGS_MAP[config["model"]["crossvit"]]["img_size"]
     train_loader, val_loader, id_to_label = get_data(
-        data_dir=config["dataset"]["data_dir"],
         img_size=img_size,
         batch_size=config["batch_size"],
         **config["dataset"],
