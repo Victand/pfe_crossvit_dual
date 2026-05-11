@@ -23,6 +23,7 @@ YOLOv7_ag/saved/*
 *.jpg
 *.numbers
 *.csv
+*.ruff_cache
 
 /saved
 
