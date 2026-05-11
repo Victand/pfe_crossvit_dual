@@ -70,7 +70,7 @@ Pour chaque images, enregistre les segmentations ainsi que les patches labélis�
 #### Lancement
 
 ```bash
-uv run src/pfe_crossvit_dual/preprocessing/preprocessing.py -d "data/thorns -c
+uv run src/pfe_crossvit_dual/preprocessing/preprocessing.py -d "data/thorns"
 ```
 
 | Argument | Description | Défaut |
