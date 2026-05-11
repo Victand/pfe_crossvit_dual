@@ -49,8 +49,9 @@ output_dir/
 
 #### Lancement
 
+exemple:
 ```bash
-uv run src/pfe_crossvit_dual/preparation/preparation.py -d "thorns -i "raw/thorns" -o "data/thorns"
+uv run src/pfe_crossvit_dual/preparation/preparation.py -d "thorns" -i "raw/thorns" -o "data/thorns"
 ```
 
 | Argument | Description | Défaut |
@@ -69,6 +70,7 @@ Pour chaque images, enregistre les segmentations ainsi que les patches labélis�
 
 #### Lancement
 
+exemple:
 ```bash
 uv run src/pfe_crossvit_dual/preprocessing/preprocessing.py -d "data/thorns"
 ```
@@ -106,6 +108,7 @@ Les paramètres d'entrainement sont définis dans le notebook dans un dictionnai
 
 **Local**
 
+exemple:
 ```bash
 uv run src/pfe_crossvit_dual/training/training_pipeline.py -c "config/parameters.yaml"
 ```
