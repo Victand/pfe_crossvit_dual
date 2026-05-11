@@ -3,11 +3,11 @@
 training:
   resume_path: null # path to previous run, "null" for new run
   lr: 0.0007
-  lr_factors: {0: 1.0, 1: 0.5, 2: 0.3, 3: 0.1, 4: 0.05} # multiplying factor of LR for 0: heads, 1: norm, 2: blocks, 3: cls tok + pos embed, 4: patch embed
+  lr_factors: {0: 1.0, 1: 0.7, 2: 0.5, 3: 0.2, 4: 0.1} # multiplying factor of LR for 0: heads, 1: norm, 2: blocks, 3: cls tok + pos embed, 4: patch embed
   epochs: 50
   patience: 8
   batch_size: 32
-  freeze: True
+  freeze: False
   unfreeze_schedule: {0: 0, 1: 5, 2: 8, 3: 20, 4: 20} # 0: heads, 1: norm, 2: blocks, 3: cls tok + pos embed, 4: patch embed (ALL)
 
   alphas: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.1] # [leaf, root, stem, flower, fruit, seed, FOND]

@@ -141,10 +141,17 @@ class DualInputDataset(Dataset):
                 if data[k]:
                     data_needed.remove(k)
 
+        img_ids = self.samples.keys()
+        if len(data_needed) < len(data):
+            for k, v in data.items():
+                if k not in data_needed:
+                    img_ids = v.keys()
+                    break
+
         # compute not cached data
         if data_needed:
             print(f"precomputing {data_needed}")
-            for img_id in tqdm(self.samples, desc="precomputing data"):
+            for img_id in tqdm(img_ids, desc="precomputing data"):
                 sample_data = self._get_sample_data(img_id, keys=data_needed, resize=True)
                 if sample_data is None:
                     continue
