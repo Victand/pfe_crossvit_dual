@@ -5,7 +5,7 @@ Ce projet utilise **uv** pour la gestion des dépendances et du verrouillage des
 
 
 ## Installation
-Projet avec **UV**, utilisez la commande:
+Projet avec **UV**, utilisez la commande suivante pour installer les requirements:
 
 ```bash
 uv sync
