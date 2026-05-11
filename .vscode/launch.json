@@ -1,0 +1,57 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Preparation",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "src/pfe_crossvit_dual/preparation/preparation.py",
+            "console": "integratedTerminal",
+            "envFile": "${workspaceFolder}/.env",
+            "args": [
+                // dataset type 'thorns' or 'genera'
+                "--dataset", 
+                "genera",
+                // input directory
+                "--input_dir",
+                "data/genera_raw",
+                // output directory
+                "--output_dir",
+                "data/genera"
+            ]
+        },
+        {
+            "name": "Preprocessing",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "src/pfe_crossvit_dual/preprocessing/preprocessing.py",
+            "console": "integratedTerminal",
+            "envFile": "${workspaceFolder}/.env",
+            "args": [
+                // directory containing original/ & segmented/
+                "--data_dir",
+                "data/genera",
+                // replace .pt if enabled else skip existing
+                //"--clean",
+                // debug only
+                //"-- limit 100"
+            ]
+        },
+        {
+            "name": "Training Pipeline",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "src/pfe_crossvit_dual/training/training_pipeline.py",
+            "console": "integratedTerminal",
+            "envFile": "${workspaceFolder}/.env",
+            "args": [
+                // path to yaml config
+                "--config",
+                "config/parameters.yaml"
+            ]
+        }
+    ]
+}

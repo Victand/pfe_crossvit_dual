@@ -5,11 +5,13 @@ __pycache__/
 venv/
 data/Data_Projet
 *.xml
+*.egg-info
+*.ipynb_checkpoints
+data/
+output/
 
 .idea/
-.vscode/
 .DS_Store
-data/
 YOLOv7_ag/runs/detect/
 *.pt
 YOLOv7_ag/saved/*
@@ -18,4 +20,11 @@ YOLOv7_ag/saved/*
 /YOLOv7_ag/scripts/
 *.pth
 
+*.jpg
+*.numbers
+*.csv
+*.ruff_cache
+
 /saved
+
+run_kaggle/
