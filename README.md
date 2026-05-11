@@ -86,11 +86,9 @@ Pipeline d'entrainement du modèle DualCrossViT.
 
 Tous les paramètres (entrainement, dataset, modèle) sont définis dans `config/parameters.yaml`.
 
-**Modèles**:
+**Modèle**:
 
-WIP 
-
-- **DualCrossVit**: modèle à deux branches large (image originale ou segemntée) et small (image originale ou segemntée), possibilité de pondérer la branche large avec des poids définis par ratios de plante ou en superposant le masque produit par yolo avec un coefficient pour chaque classe.
+- **DualCrossVit**: modèle à deux branches, large (image originale) et small (image originale ou segemntée), possibilité de pondérer la branche large avec des poids définis par ratios de plante ou en superposant le masque produit par yolo avec un coefficient pour chaque classe.
 
 - **DualCrossVitYolo**: même modèle qu'au dessus sauf pour la branche small qui prend en entrée une série de patchs produit par yolo montrant des portions spécifiques de la plante (tige, feuille, fleur, ...) avec possibilité de quotas par classe.
 
@@ -99,12 +97,12 @@ WIP
 
 **Kaggle**
 
-Uploader les datasets prétraités sur kaggle.
+- Uploader les datasets prétraités sur kaggle.
 
-Utiliser le notebook suivant: [`notebooks/kaggle_run.ipynb`](notebooks/kaggle_run.ipynb).
+- Utiliser le notebook suivant: [`notebooks/kaggle_run.ipynb`](notebooks/kaggle_run.ipynb).
 
-Les paramètres d'entrainement sont définis dans le notebook dans un dict. \
-[`notebooks/kaggle_helper.ipynb`](notebooks/kaggle_helper.ipynb) permet de transformer `parameters.yaml` en un dictionnaire pour le copier-coller.
+Les paramètres d'entrainement sont définis dans le notebook dans un dictionnaire. \
+[`notebooks/kaggle_helper.ipynb`](notebooks/kaggle_helper.ipynb) permet de transformer `parameters.yaml` en un dictionnaire pour le copier-coller dans le dictionnaire.
 
 **Local**
 

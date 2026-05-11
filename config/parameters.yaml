@@ -13,9 +13,8 @@ training:
   alphas: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.1] # [leaf, root, stem, flower, fruit, seed, FOND]
 
   model:
-    model_name: "dual_crossvit_yolo" # all models in 'model/model_loaders.py' > DUALCROSSVIT_MAP
     crossvit: "crossvit_15_224" # all crossvit in 'model/crossvit_kwargs.py' > CROSSVIT_KWARGS_MAP
-    drop_rate: 0.0
+    drop_rate: 0.0 # drop rate in ViT blocks
 
 
   dataset: 

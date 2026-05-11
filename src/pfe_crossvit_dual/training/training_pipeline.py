@@ -74,11 +74,18 @@ def training_pipeline(config):
         **config["dataset"],
     )
 
+    # model_name
+    if config["dataset"]["branch_small"] == "yolo_patches":
+        model_name = "dual_crossvit_yolo"
+    else:
+        model_name = "dual_crossvit"
+
     # model
     print("Instanciating model...")
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = instanciate_dualcrossvit(
         device=device,
+        model_name=model_name,
         **config["model"],
         num_classes=len(id_to_label),
     )
